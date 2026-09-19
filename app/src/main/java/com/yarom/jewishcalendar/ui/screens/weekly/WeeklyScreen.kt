@@ -3,10 +3,12 @@ package com.yarom.jewishcalendar.ui.screens.weekly
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -86,7 +88,7 @@ fun WeeklyScreen(calendarViewModel: CalendarViewModel, eventViewModel: EventView
                         .collectLatest { occurrences = it }
                 }
 
-                Column(
+                BoxWithConstraints(
                     modifier = Modifier
                         .fillMaxSize()
                         .graphicsLayer {
@@ -97,20 +99,28 @@ fun WeeklyScreen(calendarViewModel: CalendarViewModel, eventViewModel: EventView
                             alpha = 1f - abs(pageOffset).coerceIn(0f, 1f) * 0.25f
                         },
                 ) {
-                    weekDates.forEachIndexed { index, date ->
-                        val hebrewDate = calendarViewModel.hebrewDateFor(date)
-                        WeekDayRow(
-                            date = date,
-                            hebrewDate = hebrewDate,
-                            isSelected = date == selectedDate,
-                            hasEvents = occurrences.any { it.date == date },
-                            rowTint = if (index % 2 == 0) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            visibleZmanim = settings?.visibleZmanim ?: ZmanType.DEFAULT_VISIBLE,
-                            zmanTimes = settings?.let { calendarViewModel.zmanimFor(date, it.coordinates, it).times } ?: emptyMap(),
-                            onClick = { calendarViewModel.selectDate(date) },
-                            onLongPress = { sheetDate = date },
-                            modifier = Modifier.weight(1f),
-                        )
+                    // Each row gets a fixed, equal slice of the measured height; the row itself
+                    // then picks a font size that makes however many lines it needs fit that
+                    // slice, instead of a static size that clips or a fixed line cap that hides
+                    // zmanim.
+                    val rowHeight = maxHeight / 7
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        weekDates.forEachIndexed { index, date ->
+                            val hebrewDate = calendarViewModel.hebrewDateFor(date)
+                            WeekDayRow(
+                                date = date,
+                                hebrewDate = hebrewDate,
+                                isSelected = date == selectedDate,
+                                hasEvents = occurrences.any { it.date == date },
+                                rowTint = if (index % 2 == 0) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                visibleZmanim = settings?.visibleZmanim ?: ZmanType.DEFAULT_VISIBLE,
+                                zmanTimes = settings?.let { calendarViewModel.zmanimFor(date, it.coordinates, it).times } ?: emptyMap(),
+                                onClick = { calendarViewModel.selectDate(date) },
+                                onLongPress = { sheetDate = date },
+                                rowHeight = rowHeight,
+                                modifier = Modifier.height(rowHeight),
+                            )
+                        }
                     }
                 }
             }
@@ -154,6 +164,7 @@ private fun WeekDayRow(
     zmanTimes: Map<ZmanType, java.time.ZonedDateTime?>,
     onClick: () -> Unit,
     onLongPress: () -> Unit,
+    rowHeight: androidx.compose.ui.unit.Dp,
     modifier: Modifier = Modifier,
 ) {
     val isSpecial = hebrewDate.isShabbos || hebrewDate.isYomTov
@@ -163,15 +174,21 @@ private fun WeekDayRow(
         else -> rowTint
     }
 
-    val hasSpecialLine = hebrewDate.isErevShabbosOrYomTov || hebrewDate.isMotzaeiShabbosOrYomTov
     val hasNoteLine = !hebrewDate.holidayName.isNullOrBlank() || hasEvents
-    // Keep a hard cap on total lines (note + special + generic) so every row - even a busy
-    // Yom Tov one - fits its even 1/7th share of the page height without clipping.
-    val genericBudget = when {
-        hasNoteLine && hasSpecialLine -> 1
-        hasNoteLine || hasSpecialLine -> 2
-        else -> 3
-    }
+    val genericTypes = weeklyPriorityOrder
+        .filter { it in visibleZmanim }
+        .filterNot { it == ZmanType.TZEIS_HAKOCHAVIM && hebrewDate.isMotzaeiShabbosOrYomTov }
+    val lineCount = (if (hasNoteLine) 1 else 0) +
+        (if (hebrewDate.isErevShabbosOrYomTov) 1 else 0) +
+        (if (hebrewDate.isMotzaeiShabbosOrYomTov) 1 else 0) +
+        genericTypes.size
+
+    // Dp and Sp are both 1/160" at the default font scale, so treating the row's Dp height as
+    // an Sp budget divided across its lines is a close, dependency-free stand-in for a real
+    // pixel-accurate shrink-to-fit: fewer lines (a plain weekday) render larger, a Yom Tov row
+    // with a holiday note plus candle-lighting plus zmanim shrinks so all of it still fits.
+    val fontSizeSp = (rowHeight.value / lineCount.coerceAtLeast(1) / 1.35f).coerceIn(7f, 13f)
+    val lineHeightSp = fontSizeSp * 1.15f
 
     Row(
         modifier = modifier
@@ -203,12 +220,12 @@ private fun WeekDayRow(
                     color = Burgundy,
                     fontFamily = FontFamily.Serif,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 9.sp,
-                    lineHeight = 10.sp,
+                    fontSize = fontSizeSp.sp,
+                    lineHeight = lineHeightSp.sp,
                     maxLines = 1,
                 )
             } else if (hasEvents) {
-                Text("• יש אירועים", color = Burgundy, fontSize = 8.sp, lineHeight = 9.sp, maxLines = 1)
+                Text("• יש אירועים", color = Burgundy, fontSize = fontSizeSp.sp, lineHeight = lineHeightSp.sp, maxLines = 1)
             }
             // Candle lighting / havdalah are ritual entry/exit times for the day, not plain
             // zmanim - shown as their own highlighted lines whenever they apply (every erev
@@ -219,6 +236,8 @@ private fun WeekDayRow(
                     time = zmanTimes[ZmanType.CANDLE_LIGHTING].formatTime(),
                     color = Burgundy,
                     bold = true,
+                    fontSize = fontSizeSp.sp,
+                    lineHeight = lineHeightSp.sp,
                 )
             }
             if (hebrewDate.isMotzaeiShabbosOrYomTov) {
@@ -227,14 +246,18 @@ private fun WeekDayRow(
                     time = zmanTimes[ZmanType.TZEIS_HAKOCHAVIM].formatTime(),
                     color = Burgundy,
                     bold = true,
+                    fontSize = fontSizeSp.sp,
+                    lineHeight = lineHeightSp.sp,
                 )
             }
-            val shown = weeklyPriorityOrder
-                .filter { it in visibleZmanim }
-                .filterNot { it == ZmanType.TZEIS_HAKOCHAVIM && hebrewDate.isMotzaeiShabbosOrYomTov }
-                .take(genericBudget)
-            for (type in shown) {
-                ZmanLine(label = stringResource(type.labelRes()), time = zmanTimes[type].formatTime(), color = DeepTeal)
+            for (type in genericTypes) {
+                ZmanLine(
+                    label = stringResource(type.labelRes()),
+                    time = zmanTimes[type].formatTime(),
+                    color = DeepTeal,
+                    fontSize = fontSizeSp.sp,
+                    lineHeight = lineHeightSp.sp,
+                )
             }
         }
     }
@@ -255,13 +278,20 @@ private val weeklyPriorityOrder = listOf(
 )
 
 @Composable
-private fun ZmanLine(label: String, time: String, color: androidx.compose.ui.graphics.Color, bold: Boolean = false) {
+private fun ZmanLine(
+    label: String,
+    time: String,
+    color: androidx.compose.ui.graphics.Color,
+    fontSize: androidx.compose.ui.unit.TextUnit,
+    lineHeight: androidx.compose.ui.unit.TextUnit,
+    bold: Boolean = false,
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Text(label, color = color, fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal, fontSize = 9.sp, lineHeight = 10.sp, maxLines = 1)
-        Text(time, color = color, fontWeight = FontWeight.Bold, fontSize = 9.sp, lineHeight = 10.sp, maxLines = 1)
+        Text(label, color = color, fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal, fontSize = fontSize, lineHeight = lineHeight, maxLines = 1)
+        Text(time, color = color, fontWeight = FontWeight.Bold, fontSize = fontSize, lineHeight = lineHeight, maxLines = 1)
     }
 }
 

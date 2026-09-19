@@ -27,6 +27,8 @@ data class HebrewDate(
     val isTaanis: Boolean,
     /** Candle-lighting-eve: erev Shabbos or erev Yom Tov (incl. 2nd-day Diaspora Yom Tov). */
     val isErevShabbosOrYomTov: Boolean,
+    /** The day itself is Shabbos/Yom Tov and tomorrow isn't - havdalah/"exit" time applies. */
+    val isMotzaeiShabbosOrYomTov: Boolean,
     val holidayName: String?,
     val parashaName: String?,
     val dayOfOmer: Int,
@@ -85,13 +87,22 @@ class HebrewDateConverter(private val useHebrewFormat: Boolean = true) {
             isYomTov = jewishCalendar.isYomTov,
             isCholHamoed = jewishCalendar.isCholHamoed,
             isTaanis = jewishCalendar.isTaanis,
-            isErevShabbosOrYomTov = jewishCalendar.dayOfWeek == Calendar.FRIDAY ||
-                jewishCalendar.isErevYomTov ||
-                jewishCalendar.isErevYomTovSheni,
+            isErevShabbosOrYomTov = jewishCalendar.isTomorrowShabbosOrYomTov,
+            isMotzaeiShabbosOrYomTov = isMotzaei(jewishCalendar),
             holidayName = holidayName,
             parashaName = parashaName,
             dayOfOmer = jewishCalendar.dayOfOmer,
         )
+    }
+
+    /** True when today is Shabbos/Yom Tov and tomorrow is a plain weekday (havdalah applies). */
+    private fun isMotzaei(jewishCalendar: JewishCalendar): Boolean {
+        val isTodayRestDay = jewishCalendar.dayOfWeek == Calendar.SATURDAY || jewishCalendar.isYomTov
+        if (!isTodayRestDay) return false
+        val tomorrow = jewishCalendar.clone() as JewishCalendar
+        tomorrow.forward(Calendar.DATE, 1)
+        val isTomorrowRestDay = tomorrow.dayOfWeek == Calendar.SATURDAY || tomorrow.isYomTov
+        return !isTomorrowRestDay
     }
 
     /** Returns the name of the coming Shabbos's parasha, shown all week per spec section 4.a/6. */

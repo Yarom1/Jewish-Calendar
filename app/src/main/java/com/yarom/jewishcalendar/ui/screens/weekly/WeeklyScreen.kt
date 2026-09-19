@@ -200,7 +200,29 @@ private fun WeekDayRow(
             } else if (hasEvents) {
                 Text("• יש אירועים", color = Burgundy, fontSize = 10.sp, lineHeight = 12.sp, maxLines = 1)
             }
-            val shown = weeklyPriorityOrder.filter { it in visibleZmanim }.take(3)
+            // Candle lighting / havdalah are ritual entry/exit times for the day, not plain
+            // zmanim - shown as their own highlighted lines whenever they apply (every erev
+            // Shabbos/Yom Tov and every Motzaei Shabbos/Yom Tov, not just the week's Friday).
+            if (hebrewDate.isErevShabbosOrYomTov) {
+                ZmanLine(
+                    label = stringResource(R.string.zman_candle_lighting),
+                    time = zmanTimes[ZmanType.CANDLE_LIGHTING].formatTime(),
+                    color = Burgundy,
+                    bold = true,
+                )
+            }
+            if (hebrewDate.isMotzaeiShabbosOrYomTov) {
+                ZmanLine(
+                    label = if (hebrewDate.isShabbos) "צאת השבת" else "צאת החג",
+                    time = zmanTimes[ZmanType.TZEIS_HAKOCHAVIM].formatTime(),
+                    color = Burgundy,
+                    bold = true,
+                )
+            }
+            val shown = weeklyPriorityOrder
+                .filter { it in visibleZmanim }
+                .filterNot { it == ZmanType.TZEIS_HAKOCHAVIM && hebrewDate.isMotzaeiShabbosOrYomTov }
+                .take(3)
             for (type in shown) {
                 ZmanLine(label = stringResource(type.labelRes()), time = zmanTimes[type].formatTime(), color = DeepTeal)
             }

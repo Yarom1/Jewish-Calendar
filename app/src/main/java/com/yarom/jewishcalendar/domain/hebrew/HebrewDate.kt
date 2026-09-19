@@ -25,6 +25,8 @@ data class HebrewDate(
     val isYomTov: Boolean,
     val isCholHamoed: Boolean,
     val isTaanis: Boolean,
+    /** Candle-lighting-eve: erev Shabbos or erev Yom Tov (incl. 2nd-day Diaspora Yom Tov). */
+    val isErevShabbosOrYomTov: Boolean,
     val holidayName: String?,
     val parashaName: String?,
     val dayOfOmer: Int,
@@ -83,6 +85,9 @@ class HebrewDateConverter(private val useHebrewFormat: Boolean = true) {
             isYomTov = jewishCalendar.isYomTov,
             isCholHamoed = jewishCalendar.isCholHamoed,
             isTaanis = jewishCalendar.isTaanis,
+            isErevShabbosOrYomTov = jewishCalendar.dayOfWeek == Calendar.FRIDAY ||
+                jewishCalendar.isErevYomTov ||
+                jewishCalendar.isErevYomTovSheni,
             holidayName = holidayName,
             parashaName = parashaName,
             dayOfOmer = jewishCalendar.dayOfOmer,

@@ -8,8 +8,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronLeft
@@ -67,7 +65,7 @@ fun WeeklyScreen(calendarViewModel: CalendarViewModel, eventViewModel: EventView
     CalendarPageFrame(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 IconButton(onClick = { calendarViewModel.selectDate(selectedDate.minusWeeks(1)) }) {
@@ -85,8 +83,11 @@ fun WeeklyScreen(calendarViewModel: CalendarViewModel, eventViewModel: EventView
             OrnamentalDivider()
 
             val daySettings = settings
-            LazyColumn(modifier = Modifier.weight(1f)) {
-                itemsIndexed(weekDates) { index, date ->
+            // A plain, evenly-weighted Column (not LazyColumn) so all 7 days always fit on
+            // screen without scrolling, per spec 2 "תצוגה שבועית" - each row shrinks to share
+            // the available height equally instead of scrolling past it.
+            Column(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                weekDates.forEachIndexed { index, date ->
                     val hebrewDate = calendarViewModel.hebrewDateFor(date)
                     WeekDayRow(
                         date = date,
@@ -98,12 +99,9 @@ fun WeeklyScreen(calendarViewModel: CalendarViewModel, eventViewModel: EventView
                         zmanTimes = daySettings?.let { calendarViewModel.zmanimFor(date, it.coordinates, it).times } ?: emptyMap(),
                         onClick = { calendarViewModel.selectDate(date) },
                         onLongPress = { sheetDate = date },
+                        modifier = Modifier.weight(1f),
                     )
                 }
-            }
-
-            if (daySettings != null) {
-                ShabbatSummaryBar(calendarViewModel, weekDates, daySettings.coordinates, daySettings)
             }
         }
     }
@@ -125,6 +123,7 @@ private fun WeekDayRow(
     zmanTimes: Map<ZmanType, java.time.ZonedDateTime?>,
     onClick: () -> Unit,
     onLongPress: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val isSpecial = hebrewDate.isShabbos || hebrewDate.isYomTov
     val background = when {
@@ -134,12 +133,12 @@ private fun WeekDayRow(
     }
 
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(6.dp))
             .background(background)
             .combinedClickable(onClick = onClick, onLongClick = onLongPress)
-            .padding(horizontal = 10.dp, vertical = 8.dp),
+            .padding(horizontal = 8.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         DayBadge(
@@ -152,7 +151,8 @@ private fun WeekDayRow(
         Column(
             modifier = Modifier
                 .weight(1f)
-                .padding(horizontal = 10.dp),
+                .padding(horizontal = 8.dp),
+            verticalArrangement = Arrangement.Center,
         ) {
             val noteLine = listOfNotNull(hebrewDate.holidayName, hebrewDate.parashaName).joinToString("  ·  ")
             if (noteLine.isNotBlank()) {
@@ -161,62 +161,38 @@ private fun WeekDayRow(
                     color = Burgundy,
                     fontFamily = FontFamily.Serif,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
+                    fontSize = 12.sp,
+                    maxLines = 1,
                 )
             }
-            val zmanLineBuilder = StringBuilder()
+            // Candle lighting is a Shabbos/Yom Tov-eve ritual time, not a plain daily zman -
+            // shown only on erev Shabbos/Yom Tov, per spec 4.c "תזכורת ערב שבת... הדלקת נרות".
+            if (hebrewDate.isErevShabbosOrYomTov) {
+                ZmanLine(
+                    label = stringResource(R.string.zman_candle_lighting),
+                    time = zmanTimes[ZmanType.CANDLE_LIGHTING].formatTime(),
+                    color = Burgundy,
+                    bold = true,
+                )
+            }
             for (type in ZmanType.entries) {
-                if (type !in visibleZmanim) continue
-                if (zmanLineBuilder.isNotEmpty()) zmanLineBuilder.append("   ·   ")
-                zmanLineBuilder.append(stringResource(type.labelRes()))
-                zmanLineBuilder.append(' ')
-                zmanLineBuilder.append(zmanTimes[type].formatTime())
-            }
-            val zmanLine = zmanLineBuilder.toString()
-            if (zmanLine.isNotBlank()) {
-                Text(
-                    text = zmanLine,
-                    color = DeepTeal,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 13.sp,
-                )
+                if (type !in visibleZmanim || type == ZmanType.CANDLE_LIGHTING) continue
+                ZmanLine(label = stringResource(type.labelRes()), time = zmanTimes[type].formatTime(), color = DeepTeal)
             }
             if (hasEvents) {
-                Text("• יש אירועים", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("• יש אירועים", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
             }
         }
     }
 }
 
 @Composable
-private fun ShabbatSummaryBar(
-    calendarViewModel: CalendarViewModel,
-    weekDates: List<LocalDate>,
-    coordinates: com.yarom.jewishcalendar.domain.zmanim.Coordinates,
-    settings: com.yarom.jewishcalendar.data.repository.AppSettings,
-) {
-    // weekDates is Sunday..Saturday, so index 5 = Friday, index 6 = Saturday.
-    val friday = weekDates[5]
-    val saturday = weekDates[6]
-    val candleLighting = calendarViewModel.zmanimFor(friday, coordinates, settings).times[ZmanType.CANDLE_LIGHTING]
-    val havdalah = calendarViewModel.zmanimFor(saturday, coordinates, settings).times[ZmanType.TZEIS_HAKOCHAVIM]
-
-    OrnamentalDivider()
+private fun ZmanLine(label: String, time: String, color: androidx.compose.ui.graphics.Color, bold: Boolean = false) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly,
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        ShabbatTimeBox(stringResource(R.string.zman_candle_lighting), candleLighting.formatTime(), Burgundy)
-        ShabbatTimeBox("צאת השבת", havdalah.formatTime(), DeepTeal)
-    }
-}
-
-@Composable
-private fun ShabbatTimeBox(label: String, time: String, accent: androidx.compose.ui.graphics.Color) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(label, fontFamily = FontFamily.Serif, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = accent)
-        Text(time, fontFamily = FontFamily.Serif, fontWeight = FontWeight.ExtraBold, fontSize = 26.sp, color = accent)
+        Text(label, color = color, fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal, fontSize = 11.sp, maxLines = 1)
+        Text(time, color = color, fontWeight = FontWeight.Bold, fontSize = 11.sp, maxLines = 1)
     }
 }

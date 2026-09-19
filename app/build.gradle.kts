@@ -8,12 +8,12 @@ plugins {
 
 android {
     namespace = "com.yarom.jewishcalendar"
-    compileSdk = 35
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "com.yarom.jewishcalendar"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 34
         versionCode = 1
         versionName = "0.1.0"
 

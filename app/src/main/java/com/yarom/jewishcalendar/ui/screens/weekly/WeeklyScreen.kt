@@ -113,6 +113,7 @@ fun WeeklyScreen(calendarViewModel: CalendarViewModel, eventViewModel: EventView
     }
 }
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 private fun WeekDayRow(
     date: LocalDate,

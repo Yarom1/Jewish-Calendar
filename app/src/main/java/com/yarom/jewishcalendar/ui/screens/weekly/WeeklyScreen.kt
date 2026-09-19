@@ -163,13 +163,23 @@ private fun WeekDayRow(
         else -> rowTint
     }
 
+    val hasSpecialLine = hebrewDate.isErevShabbosOrYomTov || hebrewDate.isMotzaeiShabbosOrYomTov
+    val hasNoteLine = !hebrewDate.holidayName.isNullOrBlank() || hasEvents
+    // Keep a hard cap on total lines (note + special + generic) so every row - even a busy
+    // Yom Tov one - fits its even 1/7th share of the page height without clipping.
+    val genericBudget = when {
+        hasNoteLine && hasSpecialLine -> 1
+        hasNoteLine || hasSpecialLine -> 2
+        else -> 3
+    }
+
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(6.dp))
             .background(background)
             .combinedClickable(onClick = onClick, onLongClick = onLongPress)
-            .padding(horizontal = 8.dp, vertical = 1.dp),
+            .padding(horizontal = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         DayBadge(
@@ -182,7 +192,7 @@ private fun WeekDayRow(
         Column(
             modifier = Modifier
                 .weight(1f)
-                .padding(horizontal = 8.dp),
+                .padding(horizontal = 6.dp),
             verticalArrangement = Arrangement.Center,
         ) {
             // Parasha is shown once at the bottom of the week, not per day (spec follow-up).
@@ -193,12 +203,12 @@ private fun WeekDayRow(
                     color = Burgundy,
                     fontFamily = FontFamily.Serif,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 11.sp,
-                    lineHeight = 13.sp,
+                    fontSize = 9.sp,
+                    lineHeight = 10.sp,
                     maxLines = 1,
                 )
             } else if (hasEvents) {
-                Text("• יש אירועים", color = Burgundy, fontSize = 10.sp, lineHeight = 12.sp, maxLines = 1)
+                Text("• יש אירועים", color = Burgundy, fontSize = 8.sp, lineHeight = 9.sp, maxLines = 1)
             }
             // Candle lighting / havdalah are ritual entry/exit times for the day, not plain
             // zmanim - shown as their own highlighted lines whenever they apply (every erev
@@ -222,7 +232,7 @@ private fun WeekDayRow(
             val shown = weeklyPriorityOrder
                 .filter { it in visibleZmanim }
                 .filterNot { it == ZmanType.TZEIS_HAKOCHAVIM && hebrewDate.isMotzaeiShabbosOrYomTov }
-                .take(3)
+                .take(genericBudget)
             for (type in shown) {
                 ZmanLine(label = stringResource(type.labelRes()), time = zmanTimes[type].formatTime(), color = DeepTeal)
             }
@@ -250,8 +260,8 @@ private fun ZmanLine(label: String, time: String, color: androidx.compose.ui.gra
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Text(label, color = color, fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal, fontSize = 11.sp, lineHeight = 13.sp, maxLines = 1)
-        Text(time, color = color, fontWeight = FontWeight.Bold, fontSize = 11.sp, lineHeight = 13.sp, maxLines = 1)
+        Text(label, color = color, fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal, fontSize = 9.sp, lineHeight = 10.sp, maxLines = 1)
+        Text(time, color = color, fontWeight = FontWeight.Bold, fontSize = 9.sp, lineHeight = 10.sp, maxLines = 1)
     }
 }
 

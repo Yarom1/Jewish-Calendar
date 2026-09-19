@@ -52,9 +52,9 @@ fun DayBadge(
     ) {
         Box(
             modifier = Modifier
-                .size(46.dp)
+                .size(36.dp)
                 .background(fillColor, CircleShape)
-                .border(BorderStroke(1.5.dp, ringColor), CircleShape),
+                .border(BorderStroke(1.2.dp, ringColor), CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -63,14 +63,14 @@ fun DayBadge(
                     color = letterColor,
                     fontFamily = FontFamily.Serif,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp,
-                    lineHeight = 16.sp,
+                    fontSize = 12.sp,
+                    lineHeight = 13.sp,
                 )
                 Text(
                     text = date.dayOfMonth.toString(),
                     color = letterColor.copy(alpha = 0.75f),
-                    fontSize = 9.sp,
-                    lineHeight = 10.sp,
+                    fontSize = 7.sp,
+                    lineHeight = 8.sp,
                 )
             }
         }
@@ -79,8 +79,8 @@ fun DayBadge(
             color = if (isSpecial) Burgundy else DeepTeal,
             fontFamily = FontFamily.Serif,
             fontWeight = FontWeight.SemiBold,
-            fontSize = 9.sp,
-            lineHeight = 11.sp,
+            fontSize = 8.sp,
+            lineHeight = 9.sp,
             maxLines = 1,
         )
     }

@@ -8,15 +8,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.pager.VerticalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChevronLeft
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -25,6 +23,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -38,7 +38,6 @@ import com.yarom.jewishcalendar.ui.CalendarViewModel
 import com.yarom.jewishcalendar.ui.EventViewModel
 import com.yarom.jewishcalendar.ui.components.CalendarPageFrame
 import com.yarom.jewishcalendar.ui.components.DayBadge
-import com.yarom.jewishcalendar.ui.components.OrnamentalDivider
 import com.yarom.jewishcalendar.ui.components.formatTime
 import com.yarom.jewishcalendar.ui.components.labelRes
 import com.yarom.jewishcalendar.ui.screens.addevent.AddEventSheet
@@ -47,6 +46,11 @@ import com.yarom.jewishcalendar.ui.theme.Burgundy
 import com.yarom.jewishcalendar.ui.theme.DeepTeal
 import kotlinx.coroutines.flow.collectLatest
 import java.time.LocalDate
+import java.time.format.TextStyle
+import java.util.Locale
+import kotlin.math.abs
+
+private const val ANCHOR_PAGE = Int.MAX_VALUE / 2
 
 @Composable
 fun WeeklyScreen(calendarViewModel: CalendarViewModel, eventViewModel: EventViewModel) {
@@ -54,60 +58,87 @@ fun WeeklyScreen(calendarViewModel: CalendarViewModel, eventViewModel: EventView
     val settings by calendarViewModel.settings.collectAsState()
     var sheetDate by remember { mutableStateOf<LocalDate?>(null) }
 
-    val weekDates = remember(selectedDate) { calendarViewModel.weekDates(selectedDate) }
+    val anchorWeekStart = remember { calendarViewModel.weekDates(selectedDate).first() }
+    val initialSelectedDate = remember { selectedDate }
+    val pagerState = rememberPagerState(initialPage = ANCHOR_PAGE) { Int.MAX_VALUE }
+    val displayedWeekStart = remember(pagerState.currentPage) {
+        anchorWeekStart.plusWeeks((pagerState.currentPage - ANCHOR_PAGE).toLong())
+    }
 
-    var occurrences by remember { mutableStateOf<List<EventOccurrence>>(emptyList()) }
-    androidx.compose.runtime.LaunchedEffect(weekDates.first(), weekDates.last()) {
-        calendarViewModel.eventRepository.observeOccurrences(weekDates.first()..weekDates.last())
-            .collectLatest { occurrences = it }
+    // Keep the shared selectedDate (used by the daily/monthly tabs) in sync with paging,
+    // preserving the day-of-week offset rather than resetting to the week's Sunday.
+    LaunchedEffect(pagerState.currentPage) {
+        val pageDelta = pagerState.currentPage - ANCHOR_PAGE
+        calendarViewModel.selectDate(initialSelectedDate.plusWeeks(pageDelta.toLong()))
     }
 
     CalendarPageFrame(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                IconButton(onClick = { calendarViewModel.selectDate(selectedDate.minusWeeks(1)) }) {
-                    Icon(Icons.Default.ChevronRight, contentDescription = null)
-                }
-                val hebrewHeader = calendarViewModel.hebrewDateFor(weekDates.first())
-                Text(
-                    text = "${hebrewHeader.hebrewMonthName} ${hebrewHeader.hebrewYearLabel}",
-                    style = MaterialTheme.typography.titleLarge,
-                )
-                IconButton(onClick = { calendarViewModel.selectDate(selectedDate.plusWeeks(1)) }) {
-                    Icon(Icons.Default.ChevronLeft, contentDescription = null)
-                }
-            }
-            OrnamentalDivider()
+            WeekHeader(calendarViewModel, displayedWeekStart)
 
-            val daySettings = settings
-            // A plain, evenly-weighted Column (not LazyColumn) so all 7 days always fit on
-            // screen without scrolling, per spec 2 "תצוגה שבועית" - each row shrinks to share
-            // the available height equally instead of scrolling past it.
-            Column(modifier = Modifier.fillMaxWidth().weight(1f)) {
-                weekDates.forEachIndexed { index, date ->
-                    val hebrewDate = calendarViewModel.hebrewDateFor(date)
-                    WeekDayRow(
-                        date = date,
-                        hebrewDate = hebrewDate,
-                        isSelected = date == selectedDate,
-                        hasEvents = occurrences.any { it.date == date },
-                        rowTint = if (index % 2 == 0) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        visibleZmanim = daySettings?.visibleZmanim ?: ZmanType.DEFAULT_VISIBLE,
-                        zmanTimes = daySettings?.let { calendarViewModel.zmanimFor(date, it.coordinates, it).times } ?: emptyMap(),
-                        onClick = { calendarViewModel.selectDate(date) },
-                        onLongPress = { sheetDate = date },
-                        modifier = Modifier.weight(1f),
-                    )
+            VerticalPager(state = pagerState, modifier = Modifier.fillMaxWidth().weight(1f)) { page ->
+                val weekStart = anchorWeekStart.plusWeeks((page - ANCHOR_PAGE).toLong())
+                val weekDates = remember(weekStart) { (0..6).map { weekStart.plusDays(it.toLong()) } }
+
+                var occurrences by remember(weekStart) { mutableStateOf<List<EventOccurrence>>(emptyList()) }
+                LaunchedEffect(weekStart) {
+                    calendarViewModel.eventRepository.observeOccurrences(weekDates.first()..weekDates.last())
+                        .collectLatest { occurrences = it }
+                }
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            val pageOffset = (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
+                            rotationX = -pageOffset * 55f
+                            cameraDistance = 14f * density
+                            transformOrigin = TransformOrigin(0.5f, if (pageOffset < 0f) 1f else 0f)
+                            alpha = 1f - abs(pageOffset).coerceIn(0f, 1f) * 0.25f
+                        },
+                ) {
+                    weekDates.forEachIndexed { index, date ->
+                        val hebrewDate = calendarViewModel.hebrewDateFor(date)
+                        WeekDayRow(
+                            date = date,
+                            hebrewDate = hebrewDate,
+                            isSelected = date == selectedDate,
+                            hasEvents = occurrences.any { it.date == date },
+                            rowTint = if (index % 2 == 0) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            visibleZmanim = settings?.visibleZmanim ?: ZmanType.DEFAULT_VISIBLE,
+                            zmanTimes = settings?.let { calendarViewModel.zmanimFor(date, it.coordinates, it).times } ?: emptyMap(),
+                            onClick = { calendarViewModel.selectDate(date) },
+                            onLongPress = { sheetDate = date },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
                 }
             }
+
+            val displayedWeekDates = remember(displayedWeekStart) { (0..6).map { displayedWeekStart.plusDays(it.toLong()) } }
+            settings?.let { ShabbatBar(calendarViewModel, displayedWeekDates, it) }
         }
     }
 
     sheetDate?.let { date ->
         AddEventSheet(date = date, eventViewModel = eventViewModel, onDismiss = { sheetDate = null })
+    }
+}
+
+@Composable
+private fun WeekHeader(calendarViewModel: CalendarViewModel, weekStart: LocalDate) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        val hebrewHeader = calendarViewModel.hebrewDateFor(weekStart)
+        Text(
+            text = "${hebrewHeader.hebrewMonthName} ${hebrewHeader.hebrewYearLabel}",
+            style = MaterialTheme.typography.titleMedium,
+            color = DeepTeal,
+        )
+        val gregorianLabel = weekStart.month.getDisplayName(TextStyle.FULL, Locale("he")) + " " + weekStart.year
+        Text(gregorianLabel, style = MaterialTheme.typography.titleMedium, color = DeepTeal)
     }
 }
 
@@ -154,8 +185,9 @@ private fun WeekDayRow(
                 .padding(horizontal = 8.dp),
             verticalArrangement = Arrangement.Center,
         ) {
-            val noteLine = listOfNotNull(hebrewDate.holidayName, hebrewDate.parashaName).joinToString("  ·  ")
-            if (noteLine.isNotBlank()) {
+            // Parasha is shown once at the bottom of the week, not per day (spec follow-up).
+            val noteLine = hebrewDate.holidayName
+            if (!noteLine.isNullOrBlank()) {
                 Text(
                     text = (if (hasEvents) "• " else "") + noteLine,
                     color = Burgundy,
@@ -168,19 +200,6 @@ private fun WeekDayRow(
             } else if (hasEvents) {
                 Text("• יש אירועים", color = Burgundy, fontSize = 10.sp, lineHeight = 12.sp, maxLines = 1)
             }
-            // Candle lighting is a Shabbos/Yom Tov-eve ritual time, not a plain daily zman -
-            // shown only on erev Shabbos/Yom Tov, per spec 4.c "תזכורת ערב שבת... הדלקת נרות".
-            if (hebrewDate.isErevShabbosOrYomTov) {
-                ZmanLine(
-                    label = stringResource(R.string.zman_candle_lighting),
-                    time = zmanTimes[ZmanType.CANDLE_LIGHTING].formatTime(),
-                    color = Burgundy,
-                    bold = true,
-                )
-            }
-            // Cap to a fixed small set of "headline" zmanim (by priority) so all 7 days always
-            // fit on screen without scrolling, regardless of how many the user enabled in
-            // settings - the full list stays available on the daily view.
             val shown = weeklyPriorityOrder.filter { it in visibleZmanim }.take(3)
             for (type in shown) {
                 ZmanLine(label = stringResource(type.labelRes()), time = zmanTimes[type].formatTime(), color = DeepTeal)
@@ -211,5 +230,55 @@ private fun ZmanLine(label: String, time: String, color: androidx.compose.ui.gra
     ) {
         Text(label, color = color, fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal, fontSize = 11.sp, lineHeight = 13.sp, maxLines = 1)
         Text(time, color = color, fontWeight = FontWeight.Bold, fontSize = 11.sp, lineHeight = 13.sp, maxLines = 1)
+    }
+}
+
+/** Bottom-of-week strip: candle lighting (right), parasha (center), Shabbos exit (left) - like
+ * the boxed "הדלקת נרות" / "צאת השבת" summary on a printed luach. */
+@Composable
+private fun ShabbatBar(
+    calendarViewModel: CalendarViewModel,
+    weekDates: List<LocalDate>,
+    settings: com.yarom.jewishcalendar.data.repository.AppSettings,
+) {
+    val friday = weekDates[5]
+    val saturday = weekDates[6]
+    val candleLighting = calendarViewModel.zmanimFor(friday, settings.coordinates, settings).times[ZmanType.CANDLE_LIGHTING]
+    val havdalah = calendarViewModel.zmanimFor(saturday, settings.coordinates, settings).times[ZmanType.TZEIS_HAKOCHAVIM]
+    val parashaName = calendarViewModel.hebrewDateFor(saturday).parashaName
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(BrassGold.copy(alpha = 0.14f))
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        ShabbatTimeBox(stringResource(R.string.zman_candle_lighting), candleLighting.formatTime(), Burgundy)
+        Column(
+            modifier = Modifier.weight(1f),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            if (!parashaName.isNullOrBlank()) {
+                Text(
+                    text = parashaName,
+                    fontFamily = FontFamily.Serif,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
+                    color = DeepTeal,
+                    maxLines = 1,
+                )
+            }
+        }
+        ShabbatTimeBox("צאת השבת", havdalah.formatTime(), DeepTeal)
+    }
+}
+
+@Composable
+private fun ShabbatTimeBox(label: String, time: String, accent: androidx.compose.ui.graphics.Color) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(label, fontFamily = FontFamily.Serif, fontWeight = FontWeight.SemiBold, fontSize = 11.sp, color = accent, maxLines = 1)
+        Text(time, fontFamily = FontFamily.Serif, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = accent, maxLines = 1)
     }
 }

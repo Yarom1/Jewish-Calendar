@@ -95,7 +95,10 @@ class HebrewDateConverter(private val useHebrewFormat: Boolean = true) {
         if (upcoming == com.kosherjava.zmanim.hebrewcalendar.JewishCalendar.Parsha.NONE) return null
         val satelliteCalendar = jewishCalendar.clone() as JewishCalendar
         val daysUntilSaturday = (Calendar.SATURDAY - satelliteCalendar.dayOfWeek + 7) % 7
-        satelliteCalendar.forward(Calendar.DATE, if (daysUntilSaturday == 0) 0 else daysUntilSaturday)
+        // JewishDate.forward() rejects amounts < 1, so only call it when today isn't already Saturday.
+        if (daysUntilSaturday > 0) {
+            satelliteCalendar.forward(Calendar.DATE, daysUntilSaturday)
+        }
         return formatter.formatParsha(satelliteCalendar).ifBlank { null }
     }
 

@@ -21,6 +21,17 @@ android {
         vectorDrawables.useSupportLibrary = true
     }
 
+    signingConfigs {
+        getByName("debug") {
+            // Committed on purpose: a stable debug key so every CI build is signed the same way
+            // and can be installed over the previous one instead of colliding on package name.
+            storeFile = file("../keystore/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -32,6 +43,7 @@ android {
         debug {
             isMinifyEnabled = false
             applicationIdSuffix = ".debug"
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 

@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -28,6 +27,8 @@ import com.yarom.jewishcalendar.data.repository.EventOccurrence
 import com.yarom.jewishcalendar.ui.CalendarViewModel
 import com.yarom.jewishcalendar.ui.EventViewModel
 import com.yarom.jewishcalendar.ui.components.DayCell
+import com.yarom.jewishcalendar.ui.components.OrnamentalDivider
+import com.yarom.jewishcalendar.ui.components.SpiralBoundCard
 import com.yarom.jewishcalendar.ui.screens.addevent.AddEventSheet
 import kotlinx.coroutines.flow.collectLatest
 import java.time.LocalDate
@@ -51,7 +52,7 @@ fun MonthlyScreen(calendarViewModel: CalendarViewModel, eventViewModel: EventVie
             .collectLatest { occurrences = it }
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    SpiralBoundCard(modifier = Modifier.fillMaxSize()) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -76,7 +77,7 @@ fun MonthlyScreen(calendarViewModel: CalendarViewModel, eventViewModel: EventVie
                 )
             }
         }
-        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+        OrnamentalDivider()
 
         gridDates.chunked(7).forEach { week ->
             Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {

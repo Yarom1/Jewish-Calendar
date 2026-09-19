@@ -22,6 +22,9 @@ val BrassGold = Color(0xFFC9A227)
 val Burgundy = Color(0xFF7A1F2B)
 val BurgundyDark = Color(0xFF5C1620)
 
+/** The muted "desk" tone behind the calendar page card, so its drop shadow reads clearly. */
+val DeskBackground = Color(0xFFCFC9BA)
+
 private val ClassicLightColors = lightColorScheme(
     primary = DeepTeal,
     onPrimary = Parchment,

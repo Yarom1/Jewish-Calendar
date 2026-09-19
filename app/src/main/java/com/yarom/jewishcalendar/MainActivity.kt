@@ -133,6 +133,7 @@ private fun CalendarApp(
     val navController = rememberNavController()
 
     Scaffold(
+        containerColor = com.yarom.jewishcalendar.ui.theme.DeskBackground,
         bottomBar = {
             val backStackEntry by navController.currentBackStackEntryAsState()
             val currentRoute = backStackEntry?.destination?.route
@@ -157,7 +158,9 @@ private fun CalendarApp(
         NavHost(
             navController = navController,
             startDestination = Screen.Weekly.route,
-            modifier = Modifier.padding(padding),
+            modifier = Modifier
+                .padding(padding)
+                .padding(10.dp),
         ) {
             composable(Screen.Weekly.route) { WeeklyScreen(calendarViewModel, eventViewModel) }
             composable(Screen.Daily.route) { DailyScreen(calendarViewModel, eventViewModel) }

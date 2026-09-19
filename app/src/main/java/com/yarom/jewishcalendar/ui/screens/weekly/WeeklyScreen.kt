@@ -29,6 +29,8 @@ import com.yarom.jewishcalendar.domain.zmanim.ZmanType
 import com.yarom.jewishcalendar.ui.CalendarViewModel
 import com.yarom.jewishcalendar.ui.EventViewModel
 import com.yarom.jewishcalendar.ui.components.DayCell
+import com.yarom.jewishcalendar.ui.components.OrnamentalDivider
+import com.yarom.jewishcalendar.ui.components.SpiralBoundCard
 import com.yarom.jewishcalendar.ui.components.ZmanRow
 import com.yarom.jewishcalendar.ui.screens.addevent.AddEventSheet
 import kotlinx.coroutines.flow.collectLatest
@@ -48,7 +50,7 @@ fun WeeklyScreen(calendarViewModel: CalendarViewModel, eventViewModel: EventView
             .collectLatest { occurrences = it }
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    SpiralBoundCard(modifier = Modifier.fillMaxSize()) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -65,8 +67,9 @@ fun WeeklyScreen(calendarViewModel: CalendarViewModel, eventViewModel: EventView
                 Icon(Icons.Default.ChevronLeft, contentDescription = null)
             }
         }
+        OrnamentalDivider()
 
-        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
+        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 8.dp)) {
             weekDates.forEach { date ->
                 val hebrewDate = calendarViewModel.hebrewDateFor(date)
                 DayCell(

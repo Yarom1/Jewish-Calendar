@@ -13,7 +13,7 @@ import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenu
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.IconButton
@@ -120,7 +120,7 @@ fun AddEventSheet(
                         .menuAnchor()
                         .fillMaxWidth(),
                 )
-                ExposedDropdownMenu(
+                DropdownMenu(
                     expanded = recurrenceMenuExpanded,
                     onDismissRequest = { recurrenceMenuExpanded = false },
                 ) {

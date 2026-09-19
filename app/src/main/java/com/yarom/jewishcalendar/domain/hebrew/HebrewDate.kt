@@ -40,7 +40,6 @@ class HebrewDateConverter(private val useHebrewFormat: Boolean = true) {
         isHebrewFormat = useHebrewFormat
         isUseGershGershayim = true
         isUseLongHebrewYears = false
-        isUseLongOmer = true
     }
 
     fun fromGregorian(date: LocalDate, timeZone: TimeZone = TimeZone.getDefault()): HebrewDate {
@@ -65,7 +64,7 @@ class HebrewDateConverter(private val useHebrewFormat: Boolean = true) {
 
     private fun toHebrewDate(jewishCalendar: JewishCalendar, gregorianDate: LocalDate): HebrewDate {
         val yomTovIndex = jewishCalendar.yomTovIndex
-        val holidayName = if (yomTovIndex != JewishCalendar.NO_HOLIDAY) {
+        val holidayName = if (yomTovIndex != -1) {
             formatter.formatYomTov(jewishCalendar).ifBlank { null }
         } else null
 

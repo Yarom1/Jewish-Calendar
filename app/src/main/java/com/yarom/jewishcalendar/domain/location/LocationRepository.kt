@@ -4,6 +4,7 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
+import android.location.Location
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
@@ -25,7 +26,7 @@ class LocationRepository(private val context: Context) {
     suspend fun getCurrentCoordinates(): Coordinates? {
         if (!hasLocationPermission()) return null
         val client = LocationServices.getFusedLocationProviderClient(context)
-        val location = suspendCancellableCoroutine { continuation ->
+        val location = suspendCancellableCoroutine<Location?> { continuation ->
             client.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, null)
                 .addOnSuccessListener { continuation.resume(it) }
                 .addOnFailureListener { continuation.resume(null) }

@@ -138,7 +138,7 @@ private fun WeekDayRow(
             .clip(RoundedCornerShape(6.dp))
             .background(background)
             .combinedClickable(onClick = onClick, onLongClick = onLongPress)
-            .padding(horizontal = 8.dp, vertical = 2.dp),
+            .padding(horizontal = 8.dp, vertical = 1.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         DayBadge(
@@ -157,13 +157,16 @@ private fun WeekDayRow(
             val noteLine = listOfNotNull(hebrewDate.holidayName, hebrewDate.parashaName).joinToString("  ·  ")
             if (noteLine.isNotBlank()) {
                 Text(
-                    text = noteLine,
+                    text = (if (hasEvents) "• " else "") + noteLine,
                     color = Burgundy,
                     fontFamily = FontFamily.Serif,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp,
+                    fontSize = 11.sp,
+                    lineHeight = 13.sp,
                     maxLines = 1,
                 )
+            } else if (hasEvents) {
+                Text("• יש אירועים", color = Burgundy, fontSize = 10.sp, lineHeight = 12.sp, maxLines = 1)
             }
             // Candle lighting is a Shabbos/Yom Tov-eve ritual time, not a plain daily zman -
             // shown only on erev Shabbos/Yom Tov, per spec 4.c "תזכורת ערב שבת... הדלקת נרות".
@@ -175,16 +178,30 @@ private fun WeekDayRow(
                     bold = true,
                 )
             }
-            for (type in ZmanType.entries) {
-                if (type !in visibleZmanim || type == ZmanType.CANDLE_LIGHTING) continue
+            // Cap to a fixed small set of "headline" zmanim (by priority) so all 7 days always
+            // fit on screen without scrolling, regardless of how many the user enabled in
+            // settings - the full list stays available on the daily view.
+            val shown = weeklyPriorityOrder.filter { it in visibleZmanim }.take(3)
+            for (type in shown) {
                 ZmanLine(label = stringResource(type.labelRes()), time = zmanTimes[type].formatTime(), color = DeepTeal)
-            }
-            if (hasEvents) {
-                Text("• יש אירועים", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
             }
         }
     }
 }
+
+private val weeklyPriorityOrder = listOf(
+    ZmanType.SUNRISE,
+    ZmanType.SUNSET,
+    ZmanType.TZEIS_HAKOCHAVIM,
+    ZmanType.SOF_ZMAN_SHEMA_GRA,
+    ZmanType.SOF_ZMAN_SHEMA_MGA,
+    ZmanType.MINCHA_GEDOLA,
+    ZmanType.MINCHA_KETANA,
+    ZmanType.PLAG_HAMINCHA,
+    ZmanType.CHATZOS,
+    ZmanType.ALOS_HASHACHAR,
+    ZmanType.SOF_ZMAN_TEFILA,
+)
 
 @Composable
 private fun ZmanLine(label: String, time: String, color: androidx.compose.ui.graphics.Color, bold: Boolean = false) {
@@ -192,7 +209,7 @@ private fun ZmanLine(label: String, time: String, color: androidx.compose.ui.gra
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Text(label, color = color, fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal, fontSize = 11.sp, maxLines = 1)
-        Text(time, color = color, fontWeight = FontWeight.Bold, fontSize = 11.sp, maxLines = 1)
+        Text(label, color = color, fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal, fontSize = 11.sp, lineHeight = 13.sp, maxLines = 1)
+        Text(time, color = color, fontWeight = FontWeight.Bold, fontSize = 11.sp, lineHeight = 13.sp, maxLines = 1)
     }
 }

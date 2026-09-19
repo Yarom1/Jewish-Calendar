@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">לוח שנה עברי</string>
+
+    <string name="nav_weekly">שבועי</string>
+    <string name="nav_daily">יומי</string>
+    <string name="nav_monthly">חודשי</string>
+    <string name="nav_settings">הגדרות</string>
+
+    <string name="add_event_title">אירוע חדש</string>
+    <string name="event_name_label">כותרת</string>
+    <string name="event_location_label">מיקום</string>
+    <string name="event_time_label">שעה</string>
+    <string name="event_notes_label">הערות</string>
+    <string name="event_calendar_personal">אישי</string>
+    <string name="event_calendar_family">משפחתי</string>
+    <string name="event_recurrence_none">חד פעמי</string>
+    <string name="event_recurrence_daily">יומי</string>
+    <string name="event_recurrence_weekly">שבועי</string>
+    <string name="event_recurrence_monthly">חודשי (לועזי)</string>
+    <string name="event_recurrence_yearly">שנתי (לועזי)</string>
+    <string name="event_recurrence_hebrew_monthly">ראש חודש (עברי)</string>
+    <string name="event_recurrence_hebrew_yearly">שנתי (עברי) — יום הולדת/יארצייט</string>
+    <string name="save">שמירה</string>
+    <string name="cancel">ביטול</string>
+
+    <string name="settings_location">מיקום</string>
+    <string name="settings_calculation_method">שיטת חישוב זמנים</string>
+    <string name="settings_visible_zmanim">זמנים מוצגים</string>
+    <string name="settings_theme">ערכת נושא</string>
+    <string name="settings_dark_mode">מצב כהה</string>
+    <string name="settings_use_gps">איתור אוטומטי (GPS)</string>
+
+    <string name="zman_alos">עלות השחר</string>
+    <string name="zman_sunrise">הנץ החמה</string>
+    <string name="zman_sof_zman_shema_gra">סוף זמן ק"ש (גר"א)</string>
+    <string name="zman_sof_zman_shema_mga">סוף זמן ק"ש (מג"א)</string>
+    <string name="zman_sof_zman_tefila">סוף זמן תפילה</string>
+    <string name="zman_chatzos">חצות היום</string>
+    <string name="zman_mincha_gedola">מנחה גדולה</string>
+    <string name="zman_mincha_ketana">מנחה קטנה</string>
+    <string name="zman_plag_hamincha">פלג המנחה</string>
+    <string name="zman_sunset">שקיעה</string>
+    <string name="zman_tzeis">צאת הכוכבים</string>
+    <string name="zman_candle_lighting">הדלקת נרות</string>
+
+    <string name="permission_location_rationale">האפליקציה זקוקה למיקום כדי לחשב זמני היום המדויקים עבורך</string>
+</resources>

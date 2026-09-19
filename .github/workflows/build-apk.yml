@@ -6,6 +6,9 @@ on:
       - claude/jewish-calendar-android-app-ocf673
   workflow_dispatch: {}
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -30,3 +33,13 @@ jobs:
           name: jewish-calendar-debug-apk
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+
+      - name: Publish APK as a release asset
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest-debug-apk
+          name: Latest debug APK
+          body: Automated debug build from ${{ github.sha }}. Not for production use.
+          prerelease: true
+          make_latest: false
+          files: app/build/outputs/apk/debug/*.apk

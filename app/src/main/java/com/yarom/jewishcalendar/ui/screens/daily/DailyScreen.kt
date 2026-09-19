@@ -34,7 +34,7 @@ import com.yarom.jewishcalendar.domain.zmanim.ZmanType
 import com.yarom.jewishcalendar.ui.CalendarViewModel
 import com.yarom.jewishcalendar.ui.EventViewModel
 import com.yarom.jewishcalendar.ui.components.OrnamentalDivider
-import com.yarom.jewishcalendar.ui.components.SpiralBoundCard
+import com.yarom.jewishcalendar.ui.components.CalendarPageFrame
 import com.yarom.jewishcalendar.ui.components.ZmanRow
 import com.yarom.jewishcalendar.ui.screens.addevent.AddEventSheet
 import kotlinx.coroutines.flow.collectLatest
@@ -63,7 +63,7 @@ fun DailyScreen(calendarViewModel: CalendarViewModel, eventViewModel: EventViewM
             }
         },
     ) { padding ->
-        SpiralBoundCard(modifier = Modifier.fillMaxSize().padding(padding)) {
+        CalendarPageFrame(modifier = Modifier.fillMaxSize().padding(padding)) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,

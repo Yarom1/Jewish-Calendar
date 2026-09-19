@@ -1,67 +1,40 @@
 package com.yarom.jewishcalendar.ui.components
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
-import com.yarom.jewishcalendar.ui.theme.Parchment
+import com.yarom.jewishcalendar.ui.theme.BrassGold
 
 /**
- * Wraps a screen's content in a "page" that reads as a physical object: a drop shadow lifting it
- * off the surrounding desk background, rounded card corners, and a punched spiral-binding strip
- * across the top like a real tear-off wall calendar.
+ * Wraps a screen's content as a flat printed page: a drop shadow lifting it off the surrounding
+ * desk background, and a double gold rule frame like the decorative borders on a printed Hebrew
+ * wall calendar / "luach" sheet.
  */
 @Composable
-fun SpiralBoundCard(
+fun CalendarPageFrame(
     modifier: Modifier = Modifier,
-    ringStripColor: Color = MaterialTheme.colorScheme.primary,
+    frameColor: Color = BrassGold,
     content: @Composable () -> Unit,
 ) {
-    Column(
+    Box(
         modifier = modifier
-            .shadow(elevation = 14.dp, shape = RoundedCornerShape(18.dp), clip = false)
-            .clip(RoundedCornerShape(18.dp))
-            .background(MaterialTheme.colorScheme.surface),
+            .shadow(elevation = 10.dp, shape = RoundedCornerShape(6.dp), clip = false)
+            .clip(RoundedCornerShape(6.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(2.dp, frameColor, RoundedCornerShape(6.dp))
+            .padding(3.dp)
+            .border(0.75.dp, frameColor.copy(alpha = 0.7f), RoundedCornerShape(4.dp))
+            .padding(6.dp),
     ) {
-        SpiralBindingStrip(color = ringStripColor)
         content()
-    }
-}
-
-@Composable
-private fun SpiralBindingStrip(color: Color) {
-    Canvas(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(22.dp)
-            .background(color),
-    ) {
-        val holeRadiusPx = 4.5.dp.toPx()
-        val spacingPx = 30.dp.toPx()
-        val holeCount = (size.width / spacingPx).toInt().coerceAtLeast(4)
-        val startX = (size.width - spacingPx * (holeCount - 1)) / 2f
-        val centerY = size.height / 2f
-        for (i in 0 until holeCount) {
-            val cx = startX + spacingPx * i
-            // Punched hole: parchment fill so the page shows through, with a thin dark ring for depth.
-            drawCircle(color = Parchment, radius = holeRadiusPx, center = Offset(cx, centerY))
-            drawCircle(
-                color = Color.Black.copy(alpha = 0.18f),
-                radius = holeRadiusPx,
-                center = Offset(cx, centerY),
-                style = Stroke(width = 1.dp.toPx()),
-            )
-        }
     }
 }

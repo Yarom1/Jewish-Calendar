@@ -28,7 +28,7 @@ import com.yarom.jewishcalendar.ui.CalendarViewModel
 import com.yarom.jewishcalendar.ui.EventViewModel
 import com.yarom.jewishcalendar.ui.components.DayCell
 import com.yarom.jewishcalendar.ui.components.OrnamentalDivider
-import com.yarom.jewishcalendar.ui.components.SpiralBoundCard
+import com.yarom.jewishcalendar.ui.components.CalendarPageFrame
 import com.yarom.jewishcalendar.ui.screens.addevent.AddEventSheet
 import kotlinx.coroutines.flow.collectLatest
 import java.time.LocalDate
@@ -52,7 +52,7 @@ fun MonthlyScreen(calendarViewModel: CalendarViewModel, eventViewModel: EventVie
             .collectLatest { occurrences = it }
     }
 
-    SpiralBoundCard(modifier = Modifier.fillMaxSize()) {
+    CalendarPageFrame(modifier = Modifier.fillMaxSize()) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.SpaceBetween,

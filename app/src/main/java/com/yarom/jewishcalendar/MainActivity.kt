@@ -79,7 +79,7 @@ class MainActivity : ComponentActivity() {
                     ThemeMode.DARK -> true
                     else -> androidx.compose.foundation.isSystemInDarkTheme()
                 },
-                dynamicColor = settings?.useDynamicColor ?: true,
+                dynamicColor = settings?.useDynamicColor ?: false,
             ) {
                 CalendarApp(calendarViewModel, eventViewModel, settingsViewModel)
             }

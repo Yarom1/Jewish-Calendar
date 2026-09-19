@@ -63,7 +63,7 @@ class SettingsRepository(private val context: Context) {
             themeMode = prefs[Keys.THEME_MODE]?.let {
                 runCatching { ThemeMode.valueOf(it) }.getOrNull()
             } ?: ThemeMode.SYSTEM,
-            useDynamicColor = prefs[Keys.USE_DYNAMIC_COLOR] ?: true,
+            useDynamicColor = prefs[Keys.USE_DYNAMIC_COLOR] ?: false,
         )
     }
 

@@ -33,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.yarom.jewishcalendar.R
 import com.yarom.jewishcalendar.data.local.entity.CalendarOwner
+import com.yarom.jewishcalendar.data.local.entity.EventEntity
 import com.yarom.jewishcalendar.data.local.entity.RecurrenceType
 import com.yarom.jewishcalendar.ui.EventViewModel
 import com.yarom.jewishcalendar.ui.NewEventDraft
@@ -54,15 +55,19 @@ fun AddEventSheet(
     date: LocalDate,
     eventViewModel: EventViewModel,
     onDismiss: () -> Unit,
+    existingEvent: EventEntity? = null,
 ) {
     val sheetState = rememberModalBottomSheetState()
-    var title by remember { mutableStateOf("") }
-    var location by remember { mutableStateOf("") }
-    var notes by remember { mutableStateOf("") }
-    var hour by remember { mutableStateOf(20) }
-    var minute by remember { mutableStateOf(0) }
-    var isFamily by remember { mutableStateOf(false) }
-    var recurrenceType by remember { mutableStateOf(RecurrenceType.NONE) }
+    val initialDraft = remember(existingEvent) {
+        existingEvent?.let { NewEventDraft.from(it) } ?: NewEventDraft(date = date)
+    }
+    var title by remember { mutableStateOf(initialDraft.title) }
+    var location by remember { mutableStateOf(initialDraft.location) }
+    var notes by remember { mutableStateOf(initialDraft.notes) }
+    var hour by remember { mutableStateOf(initialDraft.hour) }
+    var minute by remember { mutableStateOf(initialDraft.minute) }
+    var isFamily by remember { mutableStateOf(initialDraft.calendarOwner == CalendarOwner.FAMILY) }
+    var recurrenceType by remember { mutableStateOf(initialDraft.recurrenceType) }
     var recurrenceMenuExpanded by remember { mutableStateOf(false) }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
@@ -74,7 +79,7 @@ fun AddEventSheet(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                text = stringResourceCompat(R.string.add_event_title),
+                text = if (existingEvent != null) "עריכת אירוע" else stringResourceCompat(R.string.add_event_title),
                 fontWeight = FontWeight.Bold,
                 style = androidx.compose.material3.MaterialTheme.typography.titleLarge,
             )
@@ -143,6 +148,21 @@ fun AddEventSheet(
                 modifier = Modifier.fillMaxWidth(),
             )
 
+            if (existingEvent != null) {
+                Button(
+                    onClick = {
+                        eventViewModel.delete(existingEvent)
+                        onDismiss()
+                    },
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                        containerColor = androidx.compose.material3.MaterialTheme.colorScheme.error,
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("מחיקת אירוע")
+                }
+            }
+
             Row(
                 modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -162,6 +182,7 @@ fun AddEventSheet(
                                 minute = minute,
                                 calendarOwner = if (isFamily) CalendarOwner.FAMILY else CalendarOwner.PERSONAL,
                                 recurrenceType = recurrenceType,
+                                id = existingEvent?.id ?: 0,
                             ),
                             onSaved = onDismiss,
                         )

@@ -31,6 +31,7 @@ data class HebrewDate(
     val isMotzaeiShabbosOrYomTov: Boolean,
     val holidayName: String?,
     val parashaName: String?,
+    val haftarahName: String?,
     val dayOfOmer: Int,
 )
 
@@ -72,7 +73,9 @@ class HebrewDateConverter(private val useHebrewFormat: Boolean = true) {
             formatter.formatYomTov(jewishCalendar).ifBlank { null }
         } else null
 
-        val parashaName = upcomingParashaName(jewishCalendar)
+        val upcomingParsha = jewishCalendar.upcomingParshah
+        val parashaName = upcomingParashaName(jewishCalendar, upcomingParsha)
+        val haftarahName = if (upcomingParsha == JewishCalendar.Parsha.NONE) null else haftarahFor(upcomingParsha)
 
         return HebrewDate(
             gregorianDate = gregorianDate,
@@ -91,6 +94,7 @@ class HebrewDateConverter(private val useHebrewFormat: Boolean = true) {
             isMotzaeiShabbosOrYomTov = isMotzaei(jewishCalendar),
             holidayName = holidayName,
             parashaName = parashaName,
+            haftarahName = haftarahName,
             dayOfOmer = jewishCalendar.dayOfOmer,
         )
     }
@@ -106,9 +110,8 @@ class HebrewDateConverter(private val useHebrewFormat: Boolean = true) {
     }
 
     /** Returns the name of the coming Shabbos's parasha, shown all week per spec section 4.a/6. */
-    private fun upcomingParashaName(jewishCalendar: JewishCalendar): String? {
-        val upcoming = jewishCalendar.upcomingParshah
-        if (upcoming == com.kosherjava.zmanim.hebrewcalendar.JewishCalendar.Parsha.NONE) return null
+    private fun upcomingParashaName(jewishCalendar: JewishCalendar, upcoming: JewishCalendar.Parsha): String? {
+        if (upcoming == JewishCalendar.Parsha.NONE) return null
         val satelliteCalendar = jewishCalendar.clone() as JewishCalendar
         val daysUntilSaturday = (Calendar.SATURDAY - satelliteCalendar.dayOfWeek + 7) % 7
         // JewishDate.forward() rejects amounts < 1, so only call it when today isn't already Saturday.

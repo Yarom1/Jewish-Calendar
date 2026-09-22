@@ -38,6 +38,10 @@ class CalendarViewModel(
 
     fun hebrewDateFor(date: LocalDate): HebrewDate = hebrewDateConverter.fromGregorian(date)
 
+    /** For the date-search control (spec follow-up): Hebrew date -> Gregorian date. */
+    fun gregorianForHebrew(year: Int, month: Int, day: Int): LocalDate? =
+        runCatching { hebrewDateConverter.hebrewDateToGregorian(year, month, day) }.getOrNull()
+
     fun zmanimFor(date: LocalDate, coordinates: Coordinates, settings: AppSettings): DayZmanim =
         zmanimEngine.calculate(date, coordinates, settings.calculationMethod)
 

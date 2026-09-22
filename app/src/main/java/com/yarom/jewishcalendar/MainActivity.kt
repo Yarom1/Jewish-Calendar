@@ -162,10 +162,31 @@ private fun CalendarApp(
                 .padding(padding)
                 .padding(10.dp),
         ) {
-            composable(Screen.Weekly.route) { WeeklyScreen(calendarViewModel, eventViewModel) }
+            composable(Screen.Weekly.route) {
+                WeeklyScreen(
+                    calendarViewModel = calendarViewModel,
+                    eventViewModel = eventViewModel,
+                    onDayOpened = {
+                        navController.navigate(Screen.Daily.route) {
+                            launchSingleTop = true
+                        }
+                    },
+                )
+            }
             composable(Screen.Daily.route) { DailyScreen(calendarViewModel, eventViewModel) }
             composable(Screen.Monthly.route) { MonthlyScreen(calendarViewModel, eventViewModel) }
-            composable(Screen.Settings.route) { SettingsScreen(settingsViewModel) }
+            composable(Screen.Settings.route) {
+                SettingsScreen(
+                    settingsViewModel = settingsViewModel,
+                    onManageEvents = { navController.navigate(Screen.Events.route) },
+                )
+            }
+            composable(Screen.Events.route) {
+                com.yarom.jewishcalendar.ui.screens.events.EventsManagementScreen(
+                    eventViewModel = eventViewModel,
+                    onBack = { navController.popBackStack() },
+                )
+            }
         }
     }
 }

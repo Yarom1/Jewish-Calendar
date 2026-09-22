@@ -29,6 +29,9 @@ class EventRepository(
             events.flatMap { occurrencesFor(it, range) }.sortedBy { it.date }
         }
 
+    /** The raw event rules (not expanded occurrences) - for a management/edit list. */
+    fun observeAll(): Flow<List<EventEntity>> = dao.observeAll()
+
     suspend fun save(event: EventEntity): Long = dao.upsert(event)
 
     suspend fun delete(event: EventEntity) = dao.delete(event)

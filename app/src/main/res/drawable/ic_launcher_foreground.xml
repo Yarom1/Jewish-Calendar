@@ -1,9 +1,26 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+    <!-- Parchment calendar page -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M54,20 L62,44 L88,44 L67,58 L75,82 L54,68 L33,82 L41,58 L20,44 L46,44 Z" />
+        android:fillColor="#FBF3E1"
+        android:pathData="M30,20 L78,20 A6,6 0 0 1 84,26 L84,82 A6,6 0 0 1 78,88 L30,88 A6,6 0 0 1 24,82 L24,26 A6,6 0 0 1 30,20 Z" />
+    <!-- Burgundy header band -->
+    <path
+        android:fillColor="#7A1F2B"
+        android:pathData="M30,20 L78,20 A6,6 0 0 1 84,26 L84,32 L24,32 L24,26 A6,6 0 0 1 30,20 Z" />
+    <!-- Spiral-binding punch holes -->
+    <path
+        android:fillColor="#FBF3E1"
+        android:pathData="M37.5,26 A2.5,2.5 0 1 0 42.5,26 A2.5,2.5 0 1 0 37.5,26 Z" />
+    <path
+        android:fillColor="#FBF3E1"
+        android:pathData="M65.5,26 A2.5,2.5 0 1 0 70.5,26 A2.5,2.5 0 1 0 65.5,26 Z" />
+    <!-- Gold Star of David -->
+    <path
+        android:fillColor="#C9A227"
+        android:pathData="M54,39 L72.19,70.5 L35.81,70.5 Z M54,81 L35.81,49.5 L72.19,49.5 Z" />
 </vector>

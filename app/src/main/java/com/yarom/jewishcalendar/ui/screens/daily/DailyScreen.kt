@@ -1,6 +1,7 @@
 package com.yarom.jewishcalendar.ui.screens.daily
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -29,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.yarom.jewishcalendar.data.local.entity.EventEntity
 import com.yarom.jewishcalendar.data.repository.EventOccurrence
 import com.yarom.jewishcalendar.domain.zmanim.ZmanType
 import com.yarom.jewishcalendar.ui.CalendarViewModel
@@ -48,6 +50,7 @@ fun DailyScreen(calendarViewModel: CalendarViewModel, eventViewModel: EventViewM
     val selectedDate by calendarViewModel.selectedDate.collectAsState()
     val settings by calendarViewModel.settings.collectAsState()
     var showAddSheet by remember { mutableStateOf(false) }
+    var editingEvent by remember { mutableStateOf<EventEntity?>(null) }
 
     var occurrences by remember { mutableStateOf<List<EventOccurrence>>(emptyList()) }
     androidx.compose.runtime.LaunchedEffect(selectedDate) {
@@ -112,7 +115,7 @@ fun DailyScreen(calendarViewModel: CalendarViewModel, eventViewModel: EventViewM
                         }
                         Text("זמני היום", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 12.dp, bottom = 4.dp))
                     }
-                    items(ZmanType.entries) { type ->
+                    items(ZmanType.entries.filter { it in daySettings.visibleZmanim }) { type ->
                         ZmanRow(type = type, time = zmanim.times[type])
                     }
                     if (occurrences.isNotEmpty()) {
@@ -127,7 +130,9 @@ fun DailyScreen(calendarViewModel: CalendarViewModel, eventViewModel: EventViewM
                             } else "כל היום"
                             Text(
                                 "$timeLabel  ${occurrence.event.title}",
-                                modifier = Modifier.padding(vertical = 4.dp),
+                                modifier = Modifier
+                                    .padding(vertical = 4.dp)
+                                    .clickable { editingEvent = occurrence.event },
                             )
                         }
                     }
@@ -138,5 +143,13 @@ fun DailyScreen(calendarViewModel: CalendarViewModel, eventViewModel: EventViewM
 
     if (showAddSheet) {
         AddEventSheet(date = selectedDate, eventViewModel = eventViewModel, onDismiss = { showAddSheet = false })
+    }
+    editingEvent?.let { event ->
+        AddEventSheet(
+            date = LocalDate.ofEpochDay(event.startEpochDay),
+            eventViewModel = eventViewModel,
+            onDismiss = { editingEvent = null },
+            existingEvent = event,
+        )
     }
 }

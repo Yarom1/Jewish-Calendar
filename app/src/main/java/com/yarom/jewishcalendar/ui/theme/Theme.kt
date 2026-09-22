@@ -12,35 +12,47 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 // Palette lifted from the classic printed Hebrew wall-calendar look: parchment pages, deep
-// teal ink, burgundy and brass-gold accents for Shabbat/Yom Tov tags.
-val Parchment = Color(0xFFFBF3E1)
-val ParchmentSurface = Color(0xFFFFFCF5)
-val InkBrown = Color(0xFF2B2015)
-val DeepTeal = Color(0xFF184A47)
-val DeepTealDark = Color(0xFF0E332F)
-val BrassGold = Color(0xFFC9A227)
-val Burgundy = Color(0xFF7A1F2B)
-val BurgundyDark = Color(0xFF5C1620)
+// teal ink, burgundy and brass-gold accents for Shabbat/Yom Tov tags. These raw literals back
+// the two color schemes below; screens should use the theme-aware properties further down
+// (DeepTeal, Burgundy, BrassGold, Parchment) instead of these directly, so text stays legible
+// in both light and dark mode.
+private val ParchmentLight = Color(0xFFFBF3E1)
+private val ParchmentSurfaceLight = Color(0xFFFFFCF5)
+private val InkBrown = Color(0xFF2B2015)
+private val DeepTealLight = Color(0xFF184A47)
+private val BrassGoldBase = Color(0xFFC9A227)
+private val BurgundyLight = Color(0xFF7A1F2B)
+
+// Dark-mode ink: the light scheme's deep teal/burgundy are near-black and unreadable on a dark
+// background, so the dark scheme uses brighter, higher-contrast variants of the same hues
+// instead (spec follow-up: dark mode was unreadable before this).
+private val ParchmentDarkInk = Color(0xFFEFE4C8)
+private val TealSurfaceDark = Color(0xFF162622)
+private val TealBackgroundDark = Color(0xFF0F1D1A)
+private val TealCardDark = Color(0xFF1B2E29)
+private val GoldOnDark = Color(0xFFD9B84A)
+private val BurgundyOnDark = Color(0xFFE0919B)
 
 /** The muted "desk" tone behind the calendar page card, so its drop shadow reads clearly. */
 val DeskBackground = Color(0xFFCFC9BA)
+val DeskBackgroundDark = Color(0xFF15120E)
 
 private val ClassicLightColors = lightColorScheme(
-    primary = DeepTeal,
-    onPrimary = Parchment,
-    primaryContainer = DeepTeal,
-    onPrimaryContainer = Parchment,
-    secondary = BrassGold,
+    primary = DeepTealLight,
+    onPrimary = ParchmentLight,
+    primaryContainer = DeepTealLight,
+    onPrimaryContainer = ParchmentLight,
+    secondary = BrassGoldBase,
     onSecondary = InkBrown,
-    secondaryContainer = BrassGold,
+    secondaryContainer = BrassGoldBase,
     onSecondaryContainer = InkBrown,
-    tertiary = Burgundy,
-    onTertiary = Parchment,
+    tertiary = BurgundyLight,
+    onTertiary = ParchmentLight,
     tertiaryContainer = Color(0xFFE9D2A8),
-    onTertiaryContainer = Burgundy,
-    background = Parchment,
+    onTertiaryContainer = BurgundyLight,
+    background = ParchmentLight,
     onBackground = InkBrown,
-    surface = ParchmentSurface,
+    surface = ParchmentSurfaceLight,
     onSurface = InkBrown,
     surfaceVariant = Color(0xFFEFE1C4),
     onSurfaceVariant = InkBrown,
@@ -48,26 +60,43 @@ private val ClassicLightColors = lightColorScheme(
 )
 
 private val ClassicDarkColors = darkColorScheme(
-    primary = BrassGold,
-    onPrimary = InkBrown,
-    primaryContainer = DeepTealDark,
-    onPrimaryContainer = Parchment,
-    secondary = BrassGold,
-    onSecondary = InkBrown,
+    primary = GoldOnDark,
+    onPrimary = TealBackgroundDark,
+    primaryContainer = TealCardDark,
+    onPrimaryContainer = ParchmentDarkInk,
+    secondary = BrassGoldBase,
+    onSecondary = TealBackgroundDark,
     secondaryContainer = Color(0xFF3A2E12),
-    onSecondaryContainer = BrassGold,
-    tertiary = Color(0xFFD98A94),
-    onTertiary = BurgundyDark,
-    tertiaryContainer = BurgundyDark,
-    onTertiaryContainer = Color(0xFFF0D6DA),
-    background = Color(0xFF17140F),
-    onBackground = Parchment,
-    surface = Color(0xFF1F1B14),
-    onSurface = Parchment,
-    surfaceVariant = Color(0xFF2A2419),
-    onSurfaceVariant = Parchment,
-    outline = Color(0xFF7A6B45),
+    onSecondaryContainer = BrassGoldBase,
+    tertiary = BurgundyOnDark,
+    onTertiary = TealBackgroundDark,
+    tertiaryContainer = Color(0xFF4A2229),
+    onTertiaryContainer = BurgundyOnDark,
+    background = TealBackgroundDark,
+    onBackground = ParchmentDarkInk,
+    surface = TealSurfaceDark,
+    onSurface = ParchmentDarkInk,
+    surfaceVariant = TealCardDark,
+    onSurfaceVariant = ParchmentDarkInk,
+    outline = Color(0xFF8C8161),
 )
+
+/**
+ * Theme-aware "ink" colors: use these (not raw literals) for text/tints/accents across the app
+ * so contrast stays correct in both light and dark mode. They resolve to the same hues in light
+ * mode as before, and to brighter, dark-mode-safe variants when the dark scheme is active.
+ */
+val DeepTeal: Color
+    @Composable get() = MaterialTheme.colorScheme.primary
+
+val Burgundy: Color
+    @Composable get() = MaterialTheme.colorScheme.tertiary
+
+val BrassGold: Color
+    @Composable get() = MaterialTheme.colorScheme.secondary
+
+val Parchment: Color
+    @Composable get() = MaterialTheme.colorScheme.onPrimary
 
 @Composable
 fun JewishCalendarTheme(

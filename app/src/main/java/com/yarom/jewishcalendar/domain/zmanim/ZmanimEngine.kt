@@ -45,7 +45,7 @@ class ZmanimEngine {
                 clear()
                 set(date.year, date.monthValue - 1, date.dayOfMonth)
             }
-            candleLightingOffset = if (method == CalculationMethod.JERUSALEM_SEA_LEVEL) 40.0 else 18.0
+            candleLightingOffset = 18.0
         }
 
         val zoneId = ZoneId.of(coordinates.timeZoneId)
@@ -63,18 +63,6 @@ class ZmanimEngine {
                 calendar.sofZmanTfilaMGA.toZoned(),
                 calendar.alos72.toZoned(),
                 calendar.tzais72.toZoned(),
-            )
-            CalculationMethod.RABBI_OVADIA_YOSEF -> Quad(
-                calendar.sofZmanShmaMGA16Point1Degrees.toZoned(),
-                calendar.sofZmanTfilaMGA16Point1Degrees.toZoned(),
-                calendar.alosHashachar.toZoned(),
-                calendar.tzaisGeonim7Point083Degrees.toZoned(),
-            )
-            CalculationMethod.JERUSALEM_SEA_LEVEL, CalculationMethod.BEIT_BENEI_BRAK -> Quad(
-                calendar.sofZmanShmaGRA.toZoned(),
-                calendar.sofZmanTfilaGRA.toZoned(),
-                calendar.alosHashachar.toZoned(),
-                calendar.tzais.toZoned(),
             )
         }
 

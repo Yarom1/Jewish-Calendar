@@ -2,6 +2,8 @@ package com.yarom.jewishcalendar.domain.hebrew
 
 import com.kosherjava.zmanim.hebrewcalendar.HebrewDateFormatter
 import com.kosherjava.zmanim.hebrewcalendar.JewishCalendar
+import com.kosherjava.zmanim.hebrewcalendar.YerushalmiYomiCalculator
+import com.kosherjava.zmanim.hebrewcalendar.YomiCalculator
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.Calendar
@@ -33,6 +35,9 @@ data class HebrewDate(
     val parashaName: String?,
     val haftarahName: String?,
     val dayOfOmer: Int,
+    /** "Daily study" (spec follow-up): Daf Yomi Bavli/Yerushalmi, null before their cycles started. */
+    val dafYomiBavli: String?,
+    val dafYomiYerushalmi: String?,
 )
 
 /**
@@ -96,6 +101,12 @@ class HebrewDateConverter(private val useHebrewFormat: Boolean = true) {
             parashaName = parashaName,
             haftarahName = haftarahName,
             dayOfOmer = jewishCalendar.dayOfOmer,
+            dafYomiBavli = runCatching {
+                formatter.formatDafYomiBavli(YomiCalculator.getDafYomiBavli(jewishCalendar))
+            }.getOrNull(),
+            dafYomiYerushalmi = runCatching {
+                YerushalmiYomiCalculator.getDafYomiYerushalmi(jewishCalendar)?.let(formatter::formatDafYomiYerushalmi)
+            }.getOrNull(),
         )
     }
 

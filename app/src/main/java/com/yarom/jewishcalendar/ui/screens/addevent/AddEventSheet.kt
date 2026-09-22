@@ -11,17 +11,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Button
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -37,17 +34,30 @@ import com.yarom.jewishcalendar.data.local.entity.EventEntity
 import com.yarom.jewishcalendar.data.local.entity.RecurrenceType
 import com.yarom.jewishcalendar.ui.EventViewModel
 import com.yarom.jewishcalendar.ui.NewEventDraft
+import com.yarom.jewishcalendar.ui.theme.DeepTeal
 import java.time.LocalDate
 
-private val recurrenceLabels = mapOf(
-    RecurrenceType.NONE to R.string.event_recurrence_none,
-    RecurrenceType.DAILY to R.string.event_recurrence_daily,
-    RecurrenceType.WEEKLY to R.string.event_recurrence_weekly,
-    RecurrenceType.MONTHLY_GREGORIAN to R.string.event_recurrence_monthly,
-    RecurrenceType.YEARLY_GREGORIAN to R.string.event_recurrence_yearly,
-    RecurrenceType.ROSH_CHODESH to R.string.event_recurrence_hebrew_monthly,
-    RecurrenceType.YEARLY_HEBREW to R.string.event_recurrence_hebrew_yearly,
-)
+/** The three cadences exposed in the UI (spec follow-up); each maps to a concrete
+ * [RecurrenceType] once combined with the Hebrew/Gregorian toggle below. */
+private enum class RecurrenceFrequency { WEEKLY, MONTHLY, YEARLY }
+
+private fun RecurrenceType.toFrequencyOrNull(): RecurrenceFrequency? = when (this) {
+    RecurrenceType.WEEKLY -> RecurrenceFrequency.WEEKLY
+    RecurrenceType.MONTHLY_GREGORIAN, RecurrenceType.ROSH_CHODESH -> RecurrenceFrequency.MONTHLY
+    RecurrenceType.YEARLY_GREGORIAN, RecurrenceType.YEARLY_HEBREW -> RecurrenceFrequency.YEARLY
+    RecurrenceType.NONE, RecurrenceType.DAILY -> null
+}
+
+private fun RecurrenceType.isHebrewCadence(): Boolean =
+    this == RecurrenceType.ROSH_CHODESH || this == RecurrenceType.YEARLY_HEBREW
+
+private fun resolveRecurrenceType(isRecurring: Boolean, frequency: RecurrenceFrequency, isHebrew: Boolean): RecurrenceType =
+    when {
+        !isRecurring -> RecurrenceType.NONE
+        frequency == RecurrenceFrequency.WEEKLY -> RecurrenceType.WEEKLY
+        frequency == RecurrenceFrequency.MONTHLY -> if (isHebrew) RecurrenceType.ROSH_CHODESH else RecurrenceType.MONTHLY_GREGORIAN
+        frequency == RecurrenceFrequency.YEARLY -> if (isHebrew) RecurrenceType.YEARLY_HEBREW else RecurrenceType.YEARLY_GREGORIAN
+    }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,8 +77,11 @@ fun AddEventSheet(
     var hour by remember { mutableStateOf(initialDraft.hour) }
     var minute by remember { mutableStateOf(initialDraft.minute) }
     var isFamily by remember { mutableStateOf(initialDraft.calendarOwner == CalendarOwner.FAMILY) }
-    var recurrenceType by remember { mutableStateOf(initialDraft.recurrenceType) }
-    var recurrenceMenuExpanded by remember { mutableStateOf(false) }
+    var isRecurring by remember { mutableStateOf(initialDraft.recurrenceType != RecurrenceType.NONE) }
+    var frequency by remember {
+        mutableStateOf(initialDraft.recurrenceType.toFrequencyOrNull() ?: RecurrenceFrequency.WEEKLY)
+    }
+    var isHebrewCadence by remember { mutableStateOf(initialDraft.recurrenceType.isHebrewCadence()) }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(
@@ -111,32 +124,23 @@ fun AddEventSheet(
                 Text(stringResourceCompat(R.string.event_calendar_family), modifier = Modifier.padding(start = 8.dp))
             }
 
-            ExposedDropdownMenuBox(
-                expanded = recurrenceMenuExpanded,
-                onExpandedChange = { recurrenceMenuExpanded = it },
-            ) {
-                OutlinedTextField(
-                    value = stringResourceCompat(recurrenceLabels.getValue(recurrenceType)),
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("חזרתיות") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = recurrenceMenuExpanded) },
-                    modifier = Modifier
-                        .menuAnchor()
-                        .fillMaxWidth(),
-                )
-                DropdownMenu(
-                    expanded = recurrenceMenuExpanded,
-                    onDismissRequest = { recurrenceMenuExpanded = false },
-                ) {
-                    recurrenceLabels.forEach { (type, resId) ->
-                        DropdownMenuItem(
-                            text = { Text(stringResourceCompat(resId)) },
-                            onClick = {
-                                recurrenceType = type
-                                recurrenceMenuExpanded = false
-                            },
-                        )
+            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                Text("חד פעמי", modifier = Modifier.padding(end = 8.dp))
+                Switch(checked = isRecurring, onCheckedChange = { isRecurring = it })
+                Text("מחזורי", modifier = Modifier.padding(start = 8.dp))
+            }
+
+            if (isRecurring) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FrequencyOption("שבועי", frequency == RecurrenceFrequency.WEEKLY) { frequency = RecurrenceFrequency.WEEKLY }
+                    FrequencyOption("חודשי", frequency == RecurrenceFrequency.MONTHLY) { frequency = RecurrenceFrequency.MONTHLY }
+                    FrequencyOption("שנתי", frequency == RecurrenceFrequency.YEARLY) { frequency = RecurrenceFrequency.YEARLY }
+                }
+                if (frequency != RecurrenceFrequency.WEEKLY) {
+                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        Text("לועזי", modifier = Modifier.padding(end = 8.dp))
+                        Switch(checked = isHebrewCadence, onCheckedChange = { isHebrewCadence = it })
+                        Text("עברי", modifier = Modifier.padding(start = 8.dp))
                     }
                 }
             }
@@ -181,7 +185,7 @@ fun AddEventSheet(
                                 hour = hour,
                                 minute = minute,
                                 calendarOwner = if (isFamily) CalendarOwner.FAMILY else CalendarOwner.PERSONAL,
-                                recurrenceType = recurrenceType,
+                                recurrenceType = resolveRecurrenceType(isRecurring, frequency, isHebrewCadence),
                                 id = existingEvent?.id ?: 0,
                             ),
                             onSaved = onDismiss,
@@ -194,6 +198,17 @@ fun AddEventSheet(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun FrequencyOption(label: String, selected: Boolean, onClick: () -> Unit) {
+    TextButton(onClick = onClick) {
+        Text(
+            text = if (selected) "● $label" else label,
+            color = if (selected) DeepTeal else androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+        )
     }
 }
 

@@ -40,12 +40,13 @@ fun DayBadge(
     date: LocalDate,
     hebrewDate: HebrewDate,
     isSelected: Boolean,
+    today: LocalDate,
     onClick: () -> Unit,
     onLongPress: () -> Unit,
     modifier: Modifier = Modifier,
     zoomScale: Float = 1f,
 ) {
-    val isToday = date == LocalDate.now()
+    val isToday = date == today
     val isSpecial = hebrewDate.isShabbos || hebrewDate.isYomTov
     val ringColor = when {
         isSpecial -> Burgundy

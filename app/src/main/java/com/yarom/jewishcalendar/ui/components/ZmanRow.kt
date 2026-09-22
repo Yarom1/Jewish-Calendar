@@ -19,19 +19,22 @@ import java.time.ZonedDateTime
 
 /** A zman row styled like a printed calendar's time ticket: label, then a bold ink-teal time. */
 @Composable
-fun ZmanRow(type: ZmanType, time: ZonedDateTime?, modifier: Modifier = Modifier) {
+fun ZmanRow(type: ZmanType, time: ZonedDateTime?, modifier: Modifier = Modifier, zoomScale: Float = 1f) {
     Row(
         modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 7.dp),
         horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
     ) {
-        Text(stringResource(type.labelRes()), style = MaterialTheme.typography.bodyLarge)
+        Text(
+            stringResource(type.labelRes()),
+            fontSize = (16 * zoomScale).sp,
+        )
         Text(
             text = time.formatTime(),
             fontFamily = FontFamily.Serif,
             fontWeight = FontWeight.Bold,
-            fontSize = 19.sp,
+            fontSize = (19 * zoomScale).sp,
             color = DeepTeal,
         )
     }

@@ -14,7 +14,6 @@ sealed class Screen(val route: String) {
     data object Daily : Screen("daily")
     data object Monthly : Screen("monthly")
     data object Settings : Screen("settings")
-    data object Events : Screen("events")
 }
 
 data class BottomNavItem(val screen: Screen, @StringRes val labelRes: Int, val icon: ImageVector)

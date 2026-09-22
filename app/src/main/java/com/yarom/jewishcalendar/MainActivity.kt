@@ -9,7 +9,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
@@ -18,6 +20,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -25,6 +28,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -73,15 +79,16 @@ class MainActivity : ComponentActivity() {
 
             RequestLocationPermission(onGranted = { settingsViewModel.useDeviceLocation() })
 
+            val darkTheme = when (settings?.themeMode) {
+                ThemeMode.LIGHT -> false
+                ThemeMode.DARK -> true
+                else -> androidx.compose.foundation.isSystemInDarkTheme()
+            }
             JewishCalendarTheme(
-                darkTheme = when (settings?.themeMode) {
-                    ThemeMode.LIGHT -> false
-                    ThemeMode.DARK -> true
-                    else -> androidx.compose.foundation.isSystemInDarkTheme()
-                },
+                darkTheme = darkTheme,
                 dynamicColor = settings?.useDynamicColor ?: false,
             ) {
-                CalendarApp(calendarViewModel, eventViewModel, settingsViewModel)
+                CalendarApp(calendarViewModel, eventViewModel, settingsViewModel, darkTheme)
             }
         }
     }
@@ -129,63 +136,85 @@ private fun CalendarApp(
     calendarViewModel: CalendarViewModel,
     eventViewModel: EventViewModel,
     settingsViewModel: SettingsViewModel,
+    darkTheme: Boolean,
 ) {
     val navController = rememberNavController()
+    // Kept as plain boolean state rather than a NavHost route: this screen is reached only from
+    // Settings, and must unconditionally close whenever the user switches tabs (spec follow-up).
+    var showEvents by remember { mutableStateOf(false) }
+    val deskBackground = if (darkTheme) {
+        com.yarom.jewishcalendar.ui.theme.DeskBackgroundDark
+    } else {
+        com.yarom.jewishcalendar.ui.theme.DeskBackground
+    }
 
     Scaffold(
-        containerColor = com.yarom.jewishcalendar.ui.theme.DeskBackground,
+        containerColor = deskBackground,
         bottomBar = {
             val backStackEntry by navController.currentBackStackEntryAsState()
             val currentRoute = backStackEntry?.destination?.route
-            NavigationBar {
+            NavigationBar(
+                containerColor = deskBackground,
+                modifier = Modifier.height(60.dp),
+            ) {
                 bottomNavItems.forEach { item ->
                     NavigationBarItem(
-                        selected = currentRoute == item.screen.route,
+                        selected = !showEvents && currentRoute == item.screen.route,
                         onClick = {
+                            showEvents = false
                             navController.navigate(item.screen.route) {
                                 popUpTo(navController.graph.startDestinationId) { saveState = true }
                                 launchSingleTop = true
                                 restoreState = true
                             }
                         },
-                        icon = { Icon(item.icon, contentDescription = null) },
-                        label = { Text(stringResource(item.labelRes)) },
+                        icon = { Icon(item.icon, contentDescription = null, modifier = Modifier.size(20.dp)) },
+                        label = { Text(stringResource(item.labelRes), style = MaterialTheme.typography.labelSmall) },
+                        colors = androidx.compose.material3.NavigationBarItemDefaults.colors(
+                            selectedIconColor = com.yarom.jewishcalendar.ui.theme.Parchment,
+                            selectedTextColor = com.yarom.jewishcalendar.ui.theme.DeepTeal,
+                            indicatorColor = com.yarom.jewishcalendar.ui.theme.DeepTeal,
+                            unselectedIconColor = com.yarom.jewishcalendar.ui.theme.DeepTeal.copy(alpha = 0.6f),
+                            unselectedTextColor = com.yarom.jewishcalendar.ui.theme.DeepTeal.copy(alpha = 0.6f),
+                        ),
                     )
                 }
             }
         },
     ) { padding ->
-        NavHost(
-            navController = navController,
-            startDestination = Screen.Weekly.route,
-            modifier = Modifier
-                .padding(padding)
-                .padding(10.dp),
-        ) {
-            composable(Screen.Weekly.route) {
-                WeeklyScreen(
-                    calendarViewModel = calendarViewModel,
-                    eventViewModel = eventViewModel,
-                    onDayOpened = {
-                        navController.navigate(Screen.Daily.route) {
-                            launchSingleTop = true
-                        }
-                    },
-                )
-            }
-            composable(Screen.Daily.route) { DailyScreen(calendarViewModel, eventViewModel) }
-            composable(Screen.Monthly.route) { MonthlyScreen(calendarViewModel, eventViewModel) }
-            composable(Screen.Settings.route) {
-                SettingsScreen(
-                    settingsViewModel = settingsViewModel,
-                    onManageEvents = { navController.navigate(Screen.Events.route) },
-                )
-            }
-            composable(Screen.Events.route) {
-                com.yarom.jewishcalendar.ui.screens.events.EventsManagementScreen(
-                    eventViewModel = eventViewModel,
-                    onBack = { navController.popBackStack() },
-                )
+        if (showEvents) {
+            com.yarom.jewishcalendar.ui.screens.events.EventsManagementScreen(
+                eventViewModel = eventViewModel,
+                onBack = { showEvents = false },
+                modifier = Modifier.padding(padding).padding(10.dp),
+            )
+        } else {
+            NavHost(
+                navController = navController,
+                startDestination = Screen.Weekly.route,
+                modifier = Modifier
+                    .padding(padding)
+                    .padding(10.dp),
+            ) {
+                composable(Screen.Weekly.route) {
+                    WeeklyScreen(
+                        calendarViewModel = calendarViewModel,
+                        eventViewModel = eventViewModel,
+                        onDayOpened = {
+                            navController.navigate(Screen.Daily.route) {
+                                launchSingleTop = true
+                            }
+                        },
+                    )
+                }
+                composable(Screen.Daily.route) { DailyScreen(calendarViewModel, eventViewModel) }
+                composable(Screen.Monthly.route) { MonthlyScreen(calendarViewModel, eventViewModel) }
+                composable(Screen.Settings.route) {
+                    SettingsScreen(
+                        settingsViewModel = settingsViewModel,
+                        onManageEvents = { showEvents = true },
+                    )
+                }
             }
         }
     }

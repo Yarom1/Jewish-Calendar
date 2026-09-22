@@ -16,12 +16,6 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -57,6 +51,8 @@ import com.yarom.jewishcalendar.ui.components.DateSearchDialog
 import com.yarom.jewishcalendar.ui.components.DayBadge
 import com.yarom.jewishcalendar.ui.components.formatTime
 import com.yarom.jewishcalendar.ui.components.labelRes
+import com.yarom.jewishcalendar.ui.components.rememberCurrentDate
+import com.yarom.jewishcalendar.ui.components.ViewControlsRow
 import com.yarom.jewishcalendar.ui.screens.addevent.AddEventSheet
 import com.yarom.jewishcalendar.ui.theme.BrassGold
 import com.yarom.jewishcalendar.ui.theme.Burgundy
@@ -82,6 +78,7 @@ fun WeeklyScreen(
 ) {
     val selectedDate by calendarViewModel.selectedDate.collectAsState()
     val settings by calendarViewModel.settings.collectAsState()
+    val today by rememberCurrentDate()
     var sheetDate by remember { mutableStateOf<LocalDate?>(null) }
     var editingEvent by remember { mutableStateOf<com.yarom.jewishcalendar.data.local.entity.EventEntity?>(null) }
     var zoomScale by remember { mutableStateOf(1f) }
@@ -124,8 +121,9 @@ fun WeeklyScreen(
                 calendarViewModel = calendarViewModel,
                 weekStart = displayedWeekStart,
                 zoomScale = zoomScale,
-                onZoomChange = { zoomScale = it.coerceIn(MIN_ZOOM, MAX_ZOOM) },
+                onZoomChange = { zoomScale = it },
                 onSearchClick = { showDateSearch = true },
+                onTodayClick = { jumpToDate(today) },
             )
 
             HorizontalPager(state = pagerState, modifier = Modifier.fillMaxWidth().weight(1f)) { page ->
@@ -156,6 +154,7 @@ fun WeeklyScreen(
                             date = date,
                             hebrewDate = hebrewDate,
                             isSelected = date == selectedDate,
+                            today = today,
                             events = occurrences.filter { it.date == date },
                             rowTint = if (index % 2 == 0) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                             visibleZmanim = settings?.visibleZmanim ?: ZmanType.DEFAULT_VISIBLE,
@@ -210,6 +209,7 @@ private fun WeekHeader(
     zoomScale: Float,
     onZoomChange: (Float) -> Unit,
     onSearchClick: () -> Unit,
+    onTodayClick: () -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 4.dp),
@@ -222,17 +222,14 @@ private fun WeekHeader(
             style = MaterialTheme.typography.titleMedium,
             color = DeepTeal,
         )
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onSearchClick, modifier = Modifier.width(28.dp)) {
-                Icon(Icons.Default.Search, contentDescription = "קפיצה לתאריך", tint = DeepTeal)
-            }
-            IconButton(onClick = { onZoomChange(zoomScale - 0.15f) }, modifier = Modifier.width(28.dp)) {
-                Icon(Icons.Default.Remove, contentDescription = "הקטן תצוגה", tint = DeepTeal)
-            }
-            IconButton(onClick = { onZoomChange(zoomScale + 0.15f) }, modifier = Modifier.width(28.dp)) {
-                Icon(Icons.Default.Add, contentDescription = "הגדל תצוגה", tint = DeepTeal)
-            }
-        }
+        ViewControlsRow(
+            zoomScale = zoomScale,
+            onZoomChange = onZoomChange,
+            onSearchClick = onSearchClick,
+            onTodayClick = onTodayClick,
+            minZoom = MIN_ZOOM,
+            maxZoom = MAX_ZOOM,
+        )
         val gregorianLabel = weekStart.month.getDisplayName(TextStyle.FULL, Locale("he")) + " " + weekStart.year
         Text(gregorianLabel, style = MaterialTheme.typography.titleMedium, color = DeepTeal)
     }
@@ -244,6 +241,7 @@ private fun WeekDayRow(
     date: LocalDate,
     hebrewDate: HebrewDate,
     isSelected: Boolean,
+    today: LocalDate,
     events: List<EventOccurrence>,
     rowTint: androidx.compose.ui.graphics.Color,
     visibleZmanim: Set<ZmanType>,
@@ -277,6 +275,7 @@ private fun WeekDayRow(
             date = date,
             hebrewDate = hebrewDate,
             isSelected = isSelected,
+            today = today,
             onClick = onClick,
             onLongPress = onLongPress,
             zoomScale = zoomScale,
@@ -423,9 +422,16 @@ private fun ShabbatBar(
             }
             if (hebrewSaturday.parashaName != null && !hebrewSaturday.haftarahName.isNullOrBlank()) {
                 Text(
-                    text = "הפטרה: ${hebrewSaturday.haftarahName}",
+                    text = "הפטרת ${hebrewSaturday.parashaName}",
                     fontSize = 10.sp,
-                    color = DeepTeal.copy(alpha = 0.85f),
+                    fontWeight = FontWeight.SemiBold,
+                    color = DeepTeal.copy(alpha = 0.9f),
+                    maxLines = 1,
+                )
+                Text(
+                    text = hebrewSaturday.haftarahName,
+                    fontSize = 9.sp,
+                    color = DeepTeal.copy(alpha = 0.75f),
                     maxLines = 1,
                 )
             }

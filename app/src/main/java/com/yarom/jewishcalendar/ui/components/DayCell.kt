@@ -1,10 +1,11 @@
 package com.yarom.jewishcalendar.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -30,7 +31,7 @@ import java.time.LocalDate
 
 private val hebrewWeekdayLetters = listOf("א", "ב", "ג", "ד", "ה", "ו", "ש") // Sun..Sat
 
-/** A day "tag" styled after a classic printed Hebrew wall-calendar page. */
+/** A day cell filling its grid slot edge-to-edge, like a printed physical wall-calendar grid. */
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun DayCell(
@@ -38,11 +39,13 @@ fun DayCell(
     hebrewDate: HebrewDate,
     isSelected: Boolean,
     hasEvents: Boolean,
+    today: LocalDate,
     onClick: () -> Unit,
     onLongPress: () -> Unit,
     modifier: Modifier = Modifier,
+    zoomScale: Float = 1f,
 ) {
-    val isToday = date == LocalDate.now()
+    val isToday = date == today
     val isSpecial = hebrewDate.isShabbos || hebrewDate.isYomTov
 
     val tagColor = when {
@@ -50,14 +53,21 @@ fun DayCell(
         isSpecial -> Burgundy
         else -> BrassGold
     }
-    val bodyBackground = if (isSelected) DeepTeal.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surface
+    val bodyBackground = if (isSelected) DeepTeal.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surface
     val numberColor = if (isSelected) DeepTeal else MaterialTheme.colorScheme.onSurface
 
     Column(
         modifier = modifier
-            .aspectRatio(0.72f)
-            .clip(RoundedCornerShape(10.dp))
+            .fillMaxSize()
+            .clip(RoundedCornerShape(8.dp))
             .background(bodyBackground)
+            .then(
+                if (isToday && !isSelected) {
+                    Modifier.border(1.8.dp, DeepTeal, RoundedCornerShape(8.dp))
+                } else {
+                    Modifier
+                },
+            )
             .combinedClickable(onClick = onClick, onLongClick = onLongPress),
     ) {
         // Weekday "tag" strip, like the colored header on a printed calendar day.
@@ -72,15 +82,16 @@ fun DayCell(
                 color = Parchment,
                 fontFamily = FontFamily.Serif,
                 fontWeight = FontWeight.Bold,
-                fontSize = 13.sp,
-                modifier = Modifier.padding(vertical = 3.dp),
+                fontSize = (11 * zoomScale).sp,
+                modifier = Modifier.padding(vertical = 2.dp),
             )
         }
 
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 4.dp),
+                .weight(1f)
+                .padding(top = 3.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
@@ -88,19 +99,19 @@ fun DayCell(
                 color = numberColor,
                 fontFamily = FontFamily.Serif,
                 fontWeight = if (isToday) FontWeight.ExtraBold else FontWeight.Bold,
-                fontSize = 22.sp,
+                fontSize = (17 * zoomScale).sp,
             )
             Text(
                 text = hebrewDate.hebrewDayOfMonthLabel,
                 color = if (isSpecial) Burgundy else BrassGold,
                 fontFamily = FontFamily.Serif,
                 fontWeight = FontWeight.SemiBold,
-                fontSize = 12.sp,
+                fontSize = (10 * zoomScale).sp,
             )
             Box(
                 modifier = Modifier
-                    .padding(top = 3.dp)
-                    .size(if (hasEvents) 6.dp else 0.dp)
+                    .padding(top = 2.dp)
+                    .size(if (hasEvents) 5.dp else 0.dp)
                     .clip(CircleShape)
                     .background(if (hasEvents) tagColor else Color.Transparent),
             )

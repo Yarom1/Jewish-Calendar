@@ -36,6 +36,7 @@ import com.yarom.jewishcalendar.data.local.entity.CalendarOwner
 import com.yarom.jewishcalendar.data.local.entity.EventEntity
 import com.yarom.jewishcalendar.data.local.entity.RecurrenceType
 import com.yarom.jewishcalendar.ui.EventViewModel
+import com.yarom.jewishcalendar.ui.components.CalendarPageFrame
 import com.yarom.jewishcalendar.ui.screens.addevent.AddEventSheet
 import com.yarom.jewishcalendar.ui.theme.Burgundy
 import com.yarom.jewishcalendar.ui.theme.DeepTeal
@@ -44,43 +45,47 @@ import java.time.format.DateTimeFormatter
 
 /** Centralized create/view/edit/delete for every event rule (spec follow-up), reachable from Settings. */
 @Composable
-fun EventsManagementScreen(eventViewModel: EventViewModel, onBack: () -> Unit) {
+fun EventsManagementScreen(eventViewModel: EventViewModel, onBack: () -> Unit, modifier: Modifier = Modifier) {
     val events by eventViewModel.allEvents.collectAsState()
     var editingEvent by remember { mutableStateOf<EventEntity?>(null) }
     var creatingNew by remember { mutableStateOf(false) }
 
     Scaffold(
+        modifier = modifier,
+        containerColor = Color.Transparent,
         floatingActionButton = {
             FloatingActionButton(onClick = { creatingNew = true }) {
                 Icon(Icons.Default.Add, contentDescription = "אירוע חדש")
             }
         },
     ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.Default.ChevronRight, contentDescription = "חזרה")
+        CalendarPageFrame(modifier = Modifier.fillMaxSize().padding(padding)) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Default.ChevronRight, contentDescription = "חזרה", tint = DeepTeal)
+                    }
+                    Text("ניהול אירועים", style = MaterialTheme.typography.titleLarge, color = DeepTeal)
                 }
-                Text("ניהול אירועים", style = MaterialTheme.typography.titleLarge)
-            }
-            HorizontalDivider()
+                HorizontalDivider(color = DeepTeal.copy(alpha = 0.2f))
 
-            if (events.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("אין אירועים עדיין", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            } else {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(events, key = { it.id }) { event ->
-                        EventRow(
-                            event = event,
-                            onClick = { editingEvent = event },
-                            onDelete = { eventViewModel.delete(event) },
-                        )
-                        HorizontalDivider()
+                if (events.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("אין אירועים עדיין", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                } else {
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        items(events, key = { it.id }) { event ->
+                            EventRow(
+                                event = event,
+                                onClick = { editingEvent = event },
+                                onDelete = { eventViewModel.delete(event) },
+                            )
+                            HorizontalDivider(color = DeepTeal.copy(alpha = 0.15f))
+                        }
                     }
                 }
             }

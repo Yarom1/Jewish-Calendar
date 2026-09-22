@@ -51,13 +51,14 @@ private fun RecurrenceType.toFrequencyOrNull(): RecurrenceFrequency? = when (thi
 private fun RecurrenceType.isHebrewCadence(): Boolean =
     this == RecurrenceType.ROSH_CHODESH || this == RecurrenceType.YEARLY_HEBREW
 
-private fun resolveRecurrenceType(isRecurring: Boolean, frequency: RecurrenceFrequency, isHebrew: Boolean): RecurrenceType =
-    when {
-        !isRecurring -> RecurrenceType.NONE
-        frequency == RecurrenceFrequency.WEEKLY -> RecurrenceType.WEEKLY
-        frequency == RecurrenceFrequency.MONTHLY -> if (isHebrew) RecurrenceType.ROSH_CHODESH else RecurrenceType.MONTHLY_GREGORIAN
-        frequency == RecurrenceFrequency.YEARLY -> if (isHebrew) RecurrenceType.YEARLY_HEBREW else RecurrenceType.YEARLY_GREGORIAN
+private fun resolveRecurrenceType(isRecurring: Boolean, frequency: RecurrenceFrequency, isHebrew: Boolean): RecurrenceType {
+    if (!isRecurring) return RecurrenceType.NONE
+    return when (frequency) {
+        RecurrenceFrequency.WEEKLY -> RecurrenceType.WEEKLY
+        RecurrenceFrequency.MONTHLY -> if (isHebrew) RecurrenceType.ROSH_CHODESH else RecurrenceType.MONTHLY_GREGORIAN
+        RecurrenceFrequency.YEARLY -> if (isHebrew) RecurrenceType.YEARLY_HEBREW else RecurrenceType.YEARLY_GREGORIAN
     }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

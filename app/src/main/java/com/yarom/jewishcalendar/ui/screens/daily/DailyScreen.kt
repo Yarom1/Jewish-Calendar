@@ -239,11 +239,17 @@ fun DailyScreen(calendarViewModel: CalendarViewModel, eventViewModel: EventViewM
     }
 
     if (showAddSheet) {
-        AddEventSheet(date = selectedDate, eventViewModel = eventViewModel, onDismiss = { showAddSheet = false })
+        AddEventSheet(
+            date = selectedDate,
+            calendarViewModel = calendarViewModel,
+            eventViewModel = eventViewModel,
+            onDismiss = { showAddSheet = false },
+        )
     }
     editingEvent?.let { event ->
         AddEventSheet(
             date = LocalDate.ofEpochDay(event.startEpochDay),
+            calendarViewModel = calendarViewModel,
             eventViewModel = eventViewModel,
             onDismiss = { editingEvent = null },
             existingEvent = event,

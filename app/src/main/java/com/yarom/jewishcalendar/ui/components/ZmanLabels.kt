@@ -1,6 +1,8 @@
 package com.yarom.jewishcalendar.ui.components
 
 import androidx.annotation.StringRes
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
 import com.yarom.jewishcalendar.R
 import com.yarom.jewishcalendar.domain.zmanim.ZmanType
 
@@ -18,4 +20,17 @@ fun ZmanType.labelRes(): Int = when (this) {
     ZmanType.SUNSET -> R.string.zman_sunset
     ZmanType.TZEIS_HAKOCHAVIM -> R.string.zman_tzeis
     ZmanType.CANDLE_LIGHTING -> R.string.zman_candle_lighting
+}
+
+/**
+ * Shorter label for the weekly view's narrow fixed-width label column (spec follow-up): the
+ * full "סוף זמן ק"ש (גר"א)" label was silently clipping its own method suffix there, making the
+ * GRA/MGA sof-zman-shema rows look identical. Only these two need shortening; every other label
+ * already fits.
+ */
+@Composable
+fun ZmanType.compactLabel(): String = when (this) {
+    ZmanType.SOF_ZMAN_SHEMA_GRA -> "ק\"ש (גר\"א)"
+    ZmanType.SOF_ZMAN_SHEMA_MGA -> "ק\"ש (מג\"א)"
+    else -> stringResource(labelRes())
 }

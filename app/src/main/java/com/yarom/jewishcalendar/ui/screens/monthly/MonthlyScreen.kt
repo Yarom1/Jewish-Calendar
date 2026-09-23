@@ -131,7 +131,7 @@ fun MonthlyScreen(calendarViewModel: CalendarViewModel, eventViewModel: EventVie
     }
 
     sheetDate?.let { date ->
-        AddEventSheet(date = date, eventViewModel = eventViewModel, onDismiss = { sheetDate = null })
+        AddEventSheet(date = date, calendarViewModel = calendarViewModel, eventViewModel = eventViewModel, onDismiss = { sheetDate = null })
     }
     if (showDateSearch) {
         DateSearchDialog(

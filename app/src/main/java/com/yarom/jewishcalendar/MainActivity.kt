@@ -184,6 +184,7 @@ private fun CalendarApp(
     ) { padding ->
         if (showEvents) {
             com.yarom.jewishcalendar.ui.screens.events.EventsManagementScreen(
+                calendarViewModel = calendarViewModel,
                 eventViewModel = eventViewModel,
                 onBack = { showEvents = false },
                 modifier = Modifier.padding(padding).padding(10.dp),

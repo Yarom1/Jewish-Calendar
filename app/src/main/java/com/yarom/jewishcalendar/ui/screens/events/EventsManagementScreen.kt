@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import com.yarom.jewishcalendar.data.local.entity.CalendarOwner
 import com.yarom.jewishcalendar.data.local.entity.EventEntity
 import com.yarom.jewishcalendar.data.local.entity.RecurrenceType
+import com.yarom.jewishcalendar.ui.CalendarViewModel
 import com.yarom.jewishcalendar.ui.EventViewModel
 import com.yarom.jewishcalendar.ui.components.CalendarPageFrame
 import com.yarom.jewishcalendar.ui.screens.addevent.AddEventSheet
@@ -45,7 +46,12 @@ import java.time.format.DateTimeFormatter
 
 /** Centralized create/view/edit/delete for every event rule (spec follow-up), reachable from Settings. */
 @Composable
-fun EventsManagementScreen(eventViewModel: EventViewModel, onBack: () -> Unit, modifier: Modifier = Modifier) {
+fun EventsManagementScreen(
+    calendarViewModel: CalendarViewModel,
+    eventViewModel: EventViewModel,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val events by eventViewModel.allEvents.collectAsState()
     var editingEvent by remember { mutableStateOf<EventEntity?>(null) }
     var creatingNew by remember { mutableStateOf(false) }
@@ -95,6 +101,7 @@ fun EventsManagementScreen(eventViewModel: EventViewModel, onBack: () -> Unit, m
     if (creatingNew) {
         AddEventSheet(
             date = LocalDate.now(),
+            calendarViewModel = calendarViewModel,
             eventViewModel = eventViewModel,
             onDismiss = { creatingNew = false },
         )
@@ -102,6 +109,7 @@ fun EventsManagementScreen(eventViewModel: EventViewModel, onBack: () -> Unit, m
     editingEvent?.let { event ->
         AddEventSheet(
             date = LocalDate.ofEpochDay(event.startEpochDay),
+            calendarViewModel = calendarViewModel,
             eventViewModel = eventViewModel,
             onDismiss = { editingEvent = null },
             existingEvent = event,

@@ -33,6 +33,8 @@ data class HebrewDate(
     val isMotzaeiShabbosOrYomTov: Boolean,
     val holidayName: String?,
     val parashaName: String?,
+    /** "הפטרת השבת" for a regular week, or the special Shabbat's own name (e.g. "שבת חנוכה"). */
+    val haftarahHeading: String?,
     val haftarahName: String?,
     val dayOfOmer: Int,
     /** "Daily study" (spec follow-up): Daf Yomi Bavli/Yerushalmi, null before their cycles started. */
@@ -79,8 +81,14 @@ class HebrewDateConverter(private val useHebrewFormat: Boolean = true) {
         } else null
 
         val upcomingParsha = jewishCalendar.upcomingParshah
-        val parashaName = upcomingParashaName(jewishCalendar, upcomingParsha)
-        val haftarahName = if (upcomingParsha == JewishCalendar.Parsha.NONE) null else haftarahFor(upcomingParsha)
+        val upcomingSaturday = advanceToSaturday(jewishCalendar)
+        val parashaName = if (upcomingParsha == JewishCalendar.Parsha.NONE) {
+            null
+        } else {
+            formatter.formatParsha(upcomingSaturday).ifBlank { null }
+        }
+        val haftarahHeading = if (upcomingParsha == JewishCalendar.Parsha.NONE) null else specialShabbosLabel(upcomingSaturday)
+        val haftarahName = if (upcomingParsha == JewishCalendar.Parsha.NONE) null else haftarahFor(upcomingSaturday, upcomingParsha)
 
         return HebrewDate(
             gregorianDate = gregorianDate,
@@ -99,6 +107,7 @@ class HebrewDateConverter(private val useHebrewFormat: Boolean = true) {
             isMotzaeiShabbosOrYomTov = isMotzaei(jewishCalendar),
             holidayName = holidayName,
             parashaName = parashaName,
+            haftarahHeading = haftarahHeading,
             haftarahName = haftarahName,
             dayOfOmer = jewishCalendar.dayOfOmer,
             dafYomiBavli = runCatching {
@@ -120,16 +129,16 @@ class HebrewDateConverter(private val useHebrewFormat: Boolean = true) {
         return !isTomorrowRestDay
     }
 
-    /** Returns the name of the coming Shabbos's parasha, shown all week per spec section 4.a/6. */
-    private fun upcomingParashaName(jewishCalendar: JewishCalendar, upcoming: JewishCalendar.Parsha): String? {
-        if (upcoming == JewishCalendar.Parsha.NONE) return null
+    /** A satellite calendar advanced to the coming Shabbos, used for both the parasha name (shown
+     * all week per spec section 4.a/6) and the special-Shabbat/haftarah lookup. */
+    private fun advanceToSaturday(jewishCalendar: JewishCalendar): JewishCalendar {
         val satelliteCalendar = jewishCalendar.clone() as JewishCalendar
         val daysUntilSaturday = (Calendar.SATURDAY - satelliteCalendar.dayOfWeek + 7) % 7
         // JewishDate.forward() rejects amounts < 1, so only call it when today isn't already Saturday.
         if (daysUntilSaturday > 0) {
             satelliteCalendar.forward(Calendar.DATE, daysUntilSaturday)
         }
-        return formatter.formatParsha(satelliteCalendar).ifBlank { null }
+        return satelliteCalendar
     }
 
     companion object {

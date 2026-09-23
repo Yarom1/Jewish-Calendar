@@ -1,6 +1,7 @@
 package com.yarom.jewishcalendar.ui.screens.weekly
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -177,11 +178,12 @@ fun WeeklyScreen(
     }
 
     sheetDate?.let { date ->
-        AddEventSheet(date = date, eventViewModel = eventViewModel, onDismiss = { sheetDate = null })
+        AddEventSheet(date = date, calendarViewModel = calendarViewModel, eventViewModel = eventViewModel, onDismiss = { sheetDate = null })
     }
     editingEvent?.let { event ->
         AddEventSheet(
             date = LocalDate.ofEpochDay(event.startEpochDay),
+            calendarViewModel = calendarViewModel,
             eventViewModel = eventViewModel,
             onDismiss = { editingEvent = null },
             existingEvent = event,
@@ -252,6 +254,10 @@ private fun WeekDayRow(
     onEventClick: (com.yarom.jewishcalendar.data.local.entity.EventEntity) -> Unit,
 ) {
     val isSpecial = hebrewDate.isShabbos || hebrewDate.isYomTov
+    val isToday = date == today
+    // The fill marks whichever day is selected (moves with the tap); today gets its own
+    // distinct marker - a frame around the whole row, not just the small day badge - so the
+    // two states are never confused with one another (spec follow-up).
     val background = when {
         isSelected -> DeepTeal.copy(alpha = 0.12f)
         isSpecial -> BrassGold.copy(alpha = 0.16f)
@@ -267,6 +273,13 @@ private fun WeekDayRow(
             .fillMaxWidth()
             .clip(RoundedCornerShape(6.dp))
             .background(background)
+            .then(
+                if (isToday) {
+                    Modifier.border(2.dp, DeepTeal, RoundedCornerShape(6.dp))
+                } else {
+                    Modifier
+                },
+            )
             .combinedClickable(onClick = onClick, onLongClick = onLongPress)
             .padding(horizontal = 6.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -340,7 +353,7 @@ private fun WeekDayRow(
                 if (type !in visibleZmanim) continue
                 if (type == ZmanType.TZEIS_HAKOCHAVIM && hebrewDate.isMotzaeiShabbosOrYomTov) continue
                 ZmanLine(
-                    label = stringResource(type.labelRes()),
+                    label = type.compactLabel(),
                     time = zmanTimes[type].formatTime(),
                     color = DeepTeal,
                     fontSize = fontSizeSp.sp,
@@ -420,9 +433,9 @@ private fun ShabbatBar(
                     maxLines = 1,
                 )
             }
-            if (hebrewSaturday.parashaName != null && !hebrewSaturday.haftarahName.isNullOrBlank()) {
+            if (!hebrewSaturday.haftarahName.isNullOrBlank()) {
                 Text(
-                    text = "הפטרת ${hebrewSaturday.parashaName}",
+                    text = "${hebrewSaturday.haftarahHeading ?: "הפטרת השבת"}:",
                     fontSize = 10.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = DeepTeal.copy(alpha = 0.9f),
@@ -432,7 +445,7 @@ private fun ShabbatBar(
                     text = hebrewSaturday.haftarahName,
                     fontSize = 9.sp,
                     color = DeepTeal.copy(alpha = 0.75f),
-                    maxLines = 1,
+                    maxLines = 2,
                 )
             }
         }

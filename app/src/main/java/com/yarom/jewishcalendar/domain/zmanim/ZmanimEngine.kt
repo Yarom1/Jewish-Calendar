@@ -51,15 +51,17 @@ class ZmanimEngine {
         val zoneId = ZoneId.of(coordinates.timeZoneId)
         fun Date?.toZoned(): ZonedDateTime? = this?.toInstant()?.atZone(zoneId)
 
-        val (sofZmanShema, sofZmanTefila, alos, tzeis) = when (method) {
-            CalculationMethod.GRA -> Quad(
-                calendar.sofZmanShmaGRA.toZoned(),
+        // Sof zman shema has its own always-visible GRA and MGA rows, so it must never switch
+        // with the general method setting (that was a real bug: picking Magen Avraham silently
+        // replaced the value shown on the row explicitly labeled "(גר"א)").  Only the zmanim
+        // without a separate per-method row (alos, sof zman tefila, tzeis) follow the setting.
+        val (sofZmanTefila, alos, tzeis) = when (method) {
+            CalculationMethod.GRA -> Triple(
                 calendar.sofZmanTfilaGRA.toZoned(),
                 calendar.alosHashachar.toZoned(),
                 calendar.tzais.toZoned(),
             )
-            CalculationMethod.MAGEN_AVRAHAM -> Quad(
-                calendar.sofZmanShmaMGA.toZoned(),
+            CalculationMethod.MAGEN_AVRAHAM -> Triple(
                 calendar.sofZmanTfilaMGA.toZoned(),
                 calendar.alos72.toZoned(),
                 calendar.tzais72.toZoned(),
@@ -71,7 +73,7 @@ class ZmanimEngine {
             times = buildMap {
                 put(ZmanType.ALOS_HASHACHAR, alos)
                 put(ZmanType.SUNRISE, calendar.sunrise.toZoned())
-                put(ZmanType.SOF_ZMAN_SHEMA_GRA, sofZmanShema)
+                put(ZmanType.SOF_ZMAN_SHEMA_GRA, calendar.sofZmanShmaGRA.toZoned())
                 put(ZmanType.SOF_ZMAN_SHEMA_MGA, calendar.sofZmanShmaMGA.toZoned())
                 put(ZmanType.SOF_ZMAN_TEFILA, sofZmanTefila)
                 put(ZmanType.CHATZOS, calendar.chatzos.toZoned())
@@ -84,13 +86,6 @@ class ZmanimEngine {
             },
         )
     }
-
-    private data class Quad(
-        val sofZmanShema: ZonedDateTime?,
-        val sofZmanTefila: ZonedDateTime?,
-        val alos: ZonedDateTime?,
-        val tzeis: ZonedDateTime?,
-    )
 }
 
 data class DayZmanim(

@@ -132,15 +132,15 @@ fun AddEventSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+                .padding(horizontal = 16.dp, vertical = 6.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text(
                 text = if (existingEvent != null) "עריכת אירוע" else stringResourceCompat(R.string.add_event_title),
                 fontFamily = FontFamily.Serif,
                 fontWeight = FontWeight.Bold,
                 color = DeepTeal,
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.titleMedium,
             )
 
             OutlinedTextField(
@@ -199,31 +199,32 @@ fun AddEventSheet(
             }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(stringResourceCompat(R.string.event_calendar_personal), modifier = Modifier.padding(end = 8.dp))
+                Text(stringResourceCompat(R.string.event_calendar_personal), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(end = 6.dp))
                 Switch(checked = isFamily, onCheckedChange = { isFamily = it }, colors = switchColors)
-                Text(stringResourceCompat(R.string.event_calendar_family), modifier = Modifier.padding(start = 8.dp))
+                Text(stringResourceCompat(R.string.event_calendar_family), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 6.dp))
             }
 
             SectionLabel("חזרתיות")
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("חד פעמי", modifier = Modifier.padding(end = 8.dp))
+                Text("חד פעמי", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(end = 6.dp))
                 Switch(checked = isRecurring, onCheckedChange = { isRecurring = it }, colors = switchColors)
-                Text("מחזורי", modifier = Modifier.padding(start = 8.dp))
+                Text("מחזורי", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 6.dp))
             }
 
             if (isRecurring) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     FrequencyOption("שבועי", frequency == RecurrenceFrequency.WEEKLY) { frequency = RecurrenceFrequency.WEEKLY }
                     FrequencyOption("חודשי", frequency == RecurrenceFrequency.MONTHLY) { frequency = RecurrenceFrequency.MONTHLY }
                     FrequencyOption("שנתי", frequency == RecurrenceFrequency.YEARLY) { frequency = RecurrenceFrequency.YEARLY }
                 }
                 if (frequency != RecurrenceFrequency.WEEKLY) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("לועזי", modifier = Modifier.padding(end = 8.dp))
+                        Text("לועזי", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(end = 6.dp))
                         Switch(checked = isHebrewCadence, onCheckedChange = { isHebrewCadence = it }, colors = switchColors)
                         Text(
                             if (frequency == RecurrenceFrequency.MONTHLY) "עברי (ראש חודש)" else "עברי",
-                            modifier = Modifier.padding(start = 8.dp),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(start = 6.dp),
                         )
                     }
                 }
@@ -256,7 +257,7 @@ fun AddEventSheet(
             }
 
             Row(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Button(
@@ -338,9 +339,10 @@ private fun SectionLabel(text: String) {
 
 @Composable
 private fun FrequencyOption(label: String, selected: Boolean, onClick: () -> Unit) {
-    TextButton(onClick = onClick) {
+    TextButton(onClick = onClick, contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 4.dp)) {
         Text(
             text = if (selected) "● $label" else label,
+            style = MaterialTheme.typography.bodyMedium,
             color = if (selected) DeepTeal else MaterialTheme.colorScheme.onSurfaceVariant,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
         )

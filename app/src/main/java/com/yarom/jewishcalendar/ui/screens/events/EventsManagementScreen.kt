@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -68,13 +69,13 @@ fun EventsManagementScreen(
         CalendarPageFrame(modifier = Modifier.fillMaxSize().padding(padding)) {
             Column(modifier = Modifier.fillMaxSize()) {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ChevronRight, contentDescription = "חזרה", tint = DeepTeal)
                     }
-                    Text("ניהול אירועים", style = MaterialTheme.typography.titleLarge, color = DeepTeal)
+                    Text("ניהול אירועים", style = MaterialTheme.typography.titleMedium, color = DeepTeal)
                 }
                 HorizontalDivider(color = DeepTeal.copy(alpha = 0.2f))
 
@@ -123,12 +124,12 @@ private fun EventRow(event: EventEntity, onClick: () -> Unit, onDelete: () -> Un
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(horizontal = 12.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(event.title, style = MaterialTheme.typography.titleMedium)
+            Text(event.title, style = MaterialTheme.typography.bodyLarge, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
             val date = LocalDate.ofEpochDay(event.startEpochDay)
             val dateLabel = date.format(DateTimeFormatter.ofPattern("d/M/yyyy"))
             val ownerLabel = if (event.calendarOwner == CalendarOwner.FAMILY) "משפחתי" else "אישי"
@@ -138,8 +139,8 @@ private fun EventRow(event: EventEntity, onClick: () -> Unit, onDelete: () -> Un
                 color = if (event.calendarOwner == CalendarOwner.FAMILY) DeepTeal else Color.Gray,
             )
         }
-        IconButton(onClick = onDelete) {
-            Icon(Icons.Default.Delete, contentDescription = "מחיקה", tint = Burgundy)
+        IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
+            Icon(Icons.Default.Delete, contentDescription = "מחיקה", tint = Burgundy, modifier = Modifier.size(18.dp))
         }
     }
 }

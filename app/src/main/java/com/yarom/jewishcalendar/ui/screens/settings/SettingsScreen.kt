@@ -7,8 +7,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -65,14 +67,15 @@ fun SettingsScreen(settingsViewModel: SettingsViewModel, onManageEvents: () -> U
             item {
                 Text(
                     stringResource(R.string.settings_location),
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleMedium,
                     color = DeepTeal,
                 )
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(stringResource(R.string.settings_use_gps))
+                    Text(stringResource(R.string.settings_use_gps), style = MaterialTheme.typography.bodyMedium)
                     Switch(
                         checked = current.useGps,
                         onCheckedChange = { if (it) settingsViewModel.useDeviceLocation() },
@@ -86,15 +89,15 @@ fun SettingsScreen(settingsViewModel: SettingsViewModel, onManageEvents: () -> U
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(8.dp))
                         .background(BrassGold.copy(alpha = 0.16f))
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = DeepTeal)
-                    Column(modifier = Modifier.padding(start = 10.dp)) {
-                        Text("מיקום נוכחי", style = MaterialTheme.typography.labelMedium, color = DeepTeal.copy(alpha = 0.75f))
+                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = DeepTeal, modifier = Modifier.size(18.dp))
+                    Column(modifier = Modifier.padding(start = 8.dp)) {
+                        Text("מיקום נוכחי", style = MaterialTheme.typography.labelSmall, color = DeepTeal.copy(alpha = 0.75f))
                         Text(
                             current.coordinates.name,
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Bold,
                             color = DeepTeal,
                         )
@@ -106,15 +109,16 @@ fun SettingsScreen(settingsViewModel: SettingsViewModel, onManageEvents: () -> U
                     onValueChange = { citySearch = it },
                     label = { Text("חיפוש עיר/יישוב") },
                     placeholder = { Text("לדוגמה: תל אביב") },
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    textStyle = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                 )
                 // Search-only, per spec follow-up - no browsable default list, just matches as you type.
                 val results = remember(citySearch) { CityPresets.search(citySearch) }
                 if (results.isNotEmpty()) {
-                    Column(modifier = Modifier.heightIn(max = 260.dp)) {
+                    Column(modifier = Modifier.heightIn(max = 220.dp)) {
                         results.take(20).forEach { city ->
                             ListItem(
-                                headlineContent = { Text(city.name) },
+                                headlineContent = { Text(city.name, style = MaterialTheme.typography.bodyMedium) },
                                 modifier = Modifier.clickable {
                                     settingsViewModel.selectCity(city)
                                     citySearch = ""
@@ -124,10 +128,10 @@ fun SettingsScreen(settingsViewModel: SettingsViewModel, onManageEvents: () -> U
                     }
                 }
 
-                HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = DeepTeal.copy(alpha = 0.2f))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp), color = DeepTeal.copy(alpha = 0.2f))
                 Text(
                     stringResource(R.string.settings_calculation_method),
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleMedium,
                     color = DeepTeal,
                 )
 
@@ -156,59 +160,63 @@ fun SettingsScreen(settingsViewModel: SettingsViewModel, onManageEvents: () -> U
                     }
                 }
 
-                HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = DeepTeal.copy(alpha = 0.2f))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp), color = DeepTeal.copy(alpha = 0.2f))
                 Text(
                     stringResource(R.string.settings_visible_zmanim),
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleMedium,
                     color = DeepTeal,
                 )
             }
 
             items(ZmanType.entries) { type ->
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(stringResource(type.labelRes()))
+                    Text(stringResource(type.labelRes()), style = MaterialTheme.typography.bodyMedium)
                     Checkbox(
                         checked = type in current.visibleZmanim,
                         onCheckedChange = { settingsViewModel.toggleZman(type, it) },
+                        modifier = Modifier.size(32.dp),
                     )
                 }
             }
 
             item {
-                HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = DeepTeal.copy(alpha = 0.2f))
-                Text(stringResource(R.string.settings_theme), style = MaterialTheme.typography.titleLarge, color = DeepTeal)
+                HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp), color = DeepTeal.copy(alpha = 0.2f))
+                Text(stringResource(R.string.settings_theme), style = MaterialTheme.typography.titleMedium, color = DeepTeal)
 
-                Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                     ThemeMode.entries.forEach { mode ->
-                        Button(onClick = { settingsViewModel.setThemeMode(mode) }) {
+                        Button(onClick = { settingsViewModel.setThemeMode(mode) }, contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)) {
                             Text(
                                 when (mode) {
                                     ThemeMode.SYSTEM -> "מערכת"
                                     ThemeMode.LIGHT -> "בהיר"
                                     ThemeMode.DARK -> "כהה"
                                 },
+                                style = MaterialTheme.typography.labelMedium,
                             )
                         }
                     }
                 }
 
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text("Material You (צבעים דינמיים)")
+                    Text("Material You (צבעים דינמיים)", style = MaterialTheme.typography.bodyMedium)
                     Switch(checked = current.useDynamicColor, onCheckedChange = { settingsViewModel.setUseDynamicColor(it) })
                 }
 
-                HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = DeepTeal.copy(alpha = 0.2f))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp), color = DeepTeal.copy(alpha = 0.2f))
                 ListItem(
-                    headlineContent = { Text("ניהול אירועים") },
-                    supportingContent = { Text("צפייה, עריכה ומחיקה של כל האירועים") },
-                    leadingContent = { Icon(Icons.Default.Event, contentDescription = null, tint = DeepTeal) },
-                    trailingContent = { Icon(Icons.Default.ChevronLeft, contentDescription = null, tint = DeepTeal) },
+                    headlineContent = { Text("ניהול אירועים", style = MaterialTheme.typography.bodyLarge) },
+                    supportingContent = { Text("צפייה, עריכה ומחיקה של כל האירועים", style = MaterialTheme.typography.bodySmall) },
+                    leadingContent = { Icon(Icons.Default.Event, contentDescription = null, tint = DeepTeal, modifier = Modifier.size(20.dp)) },
+                    trailingContent = { Icon(Icons.Default.ChevronLeft, contentDescription = null, tint = DeepTeal, modifier = Modifier.size(20.dp)) },
                     modifier = Modifier.clickable(onClick = onManageEvents),
                 )
             }

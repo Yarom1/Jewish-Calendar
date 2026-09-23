@@ -51,6 +51,7 @@ import com.yarom.jewishcalendar.ui.components.CalendarPageFrame
 import com.yarom.jewishcalendar.ui.components.DateSearchDialog
 import com.yarom.jewishcalendar.ui.components.DayBadge
 import com.yarom.jewishcalendar.ui.components.formatTime
+import com.yarom.jewishcalendar.ui.components.compactLabel
 import com.yarom.jewishcalendar.ui.components.labelRes
 import com.yarom.jewishcalendar.ui.components.rememberCurrentDate
 import com.yarom.jewishcalendar.ui.components.ViewControlsRow

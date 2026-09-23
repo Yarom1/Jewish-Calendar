@@ -36,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yarom.jewishcalendar.data.local.entity.EventEntity
@@ -51,6 +52,7 @@ import com.yarom.jewishcalendar.ui.components.ZmanRow
 import com.yarom.jewishcalendar.ui.components.rememberCurrentDate
 import com.yarom.jewishcalendar.ui.screens.addevent.AddEventSheet
 import com.yarom.jewishcalendar.ui.theme.DeepTeal
+import com.yarom.jewishcalendar.ui.theme.EventColor
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -230,6 +232,8 @@ fun DailyScreen(calendarViewModel: CalendarViewModel, eventViewModel: EventViewM
                                 }
                                 Text(
                                     "$timeLabel  ${occurrence.event.title}",
+                                    color = EventColor,
+                                    fontWeight = FontWeight.SemiBold,
                                     fontSize = (14 * zoomScale).sp,
                                     modifier = Modifier
                                         .padding(vertical = 4.dp)

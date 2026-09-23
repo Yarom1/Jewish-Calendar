@@ -9,6 +9,7 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 
 // Palette lifted from the classic printed Hebrew wall-calendar look: parchment pages, deep
@@ -32,6 +33,12 @@ private val TealBackgroundDark = Color(0xFF0F1D1A)
 private val TealCardDark = Color(0xFF1B2E29)
 private val GoldOnDark = Color(0xFFD9B84A)
 private val BurgundyOnDark = Color(0xFFE0919B)
+
+// User-created events get their own dedicated hue (indigo), distinct from every other calendar
+// color - teal is halachic times, burgundy is Shabbat/Yom Tov, gold is general accents (spec
+// follow-up: event text/markers were reusing burgundy, indistinguishable from holiday text).
+private val EventIndigoLight = Color(0xFF33448F)
+private val EventIndigoDark = Color(0xFFA9B7EE)
 
 /** The muted "desk" tone behind the calendar page card, so its drop shadow reads clearly. */
 val DeskBackground = Color(0xFFCFC9BA)
@@ -97,6 +104,9 @@ val BrassGold: Color
 
 val Parchment: Color
     @Composable get() = MaterialTheme.colorScheme.onPrimary
+
+val EventColor: Color
+    @Composable get() = if (MaterialTheme.colorScheme.background.luminance() < 0.5f) EventIndigoDark else EventIndigoLight
 
 @Composable
 fun JewishCalendarTheme(

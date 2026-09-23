@@ -42,6 +42,7 @@ import com.yarom.jewishcalendar.ui.components.CalendarPageFrame
 import com.yarom.jewishcalendar.ui.screens.addevent.AddEventSheet
 import com.yarom.jewishcalendar.ui.theme.Burgundy
 import com.yarom.jewishcalendar.ui.theme.DeepTeal
+import com.yarom.jewishcalendar.ui.theme.EventColor
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -129,7 +130,7 @@ private fun EventRow(event: EventEntity, onClick: () -> Unit, onDelete: () -> Un
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(event.title, style = MaterialTheme.typography.bodyLarge, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
+            Text(event.title, style = MaterialTheme.typography.bodyLarge, color = EventColor, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
             val date = LocalDate.ofEpochDay(event.startEpochDay)
             val dateLabel = date.format(DateTimeFormatter.ofPattern("d/M/yyyy"))
             val ownerLabel = if (event.calendarOwner == CalendarOwner.FAMILY) "משפחתי" else "אישי"

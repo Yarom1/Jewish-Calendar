@@ -59,6 +59,7 @@ import com.yarom.jewishcalendar.ui.screens.addevent.AddEventSheet
 import com.yarom.jewishcalendar.ui.theme.BrassGold
 import com.yarom.jewishcalendar.ui.theme.Burgundy
 import com.yarom.jewishcalendar.ui.theme.DeepTeal
+import com.yarom.jewishcalendar.ui.theme.EventColor
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -322,7 +323,7 @@ private fun WeekDayRow(
             for (occurrence in events) {
                 Text(
                     text = "• ${occurrence.event.title}",
-                    color = Burgundy,
+                    color = EventColor,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = fontSizeSp.sp,
                     lineHeight = lineHeightSp.sp,

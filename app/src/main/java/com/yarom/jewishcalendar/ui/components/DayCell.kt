@@ -26,6 +26,7 @@ import com.yarom.jewishcalendar.domain.hebrew.HebrewDate
 import com.yarom.jewishcalendar.ui.theme.BrassGold
 import com.yarom.jewishcalendar.ui.theme.Burgundy
 import com.yarom.jewishcalendar.ui.theme.DeepTeal
+import com.yarom.jewishcalendar.ui.theme.EventColor
 import com.yarom.jewishcalendar.ui.theme.Parchment
 import java.time.LocalDate
 
@@ -113,7 +114,7 @@ fun DayCell(
                     .padding(top = 2.dp)
                     .size(if (hasEvents) 5.dp else 0.dp)
                     .clip(CircleShape)
-                    .background(if (hasEvents) tagColor else Color.Transparent),
+                    .background(if (hasEvents) EventColor else Color.Transparent),
             )
         }
     }

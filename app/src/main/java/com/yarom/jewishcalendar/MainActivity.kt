@@ -1,6 +1,7 @@
 package com.yarom.jewishcalendar
 
 import android.Manifest
+import android.app.Activity
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -26,14 +27,19 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -116,6 +122,27 @@ private fun CrashReportScreen(trace: String, onDismiss: () -> Unit) {
     }
 }
 
+/** Hides/shows the status bar and (3-button/gesture) navigation bar to match the app's own
+ * fullscreen toggle - swipe from an edge briefly reveals them again while hidden (spec
+ * follow-up). */
+@Composable
+private fun SystemBarsVisibilityEffect(hidden: Boolean) {
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as? Activity)?.window ?: return@SideEffect
+            WindowCompat.setDecorFitsSystemWindows(window, !hidden)
+            val controller = WindowCompat.getInsetsController(window, view)
+            if (hidden) {
+                controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                controller.hide(WindowInsetsCompat.Type.systemBars())
+            } else {
+                controller.show(WindowInsetsCompat.Type.systemBars())
+            }
+        }
+    }
+}
+
 @Composable
 private fun RequestLocationPermission(onGranted: () -> Unit) {
     val launcher = rememberLauncherForActivityResult(
@@ -148,36 +175,44 @@ private fun CalendarApp(
         com.yarom.jewishcalendar.ui.theme.DeskBackground
     }
 
+    // Fullscreen toggle (spec follow-up): hides the bottom nav bar and the system status/nav
+    // bars, driven by a button in every calendar view's ViewControlsRow via the shared
+    // CalendarViewModel so it applies app-wide regardless of which tab is active.
+    val isFullscreen by calendarViewModel.isFullscreen.collectAsState()
+    SystemBarsVisibilityEffect(hidden = isFullscreen)
+
     Scaffold(
         containerColor = deskBackground,
         bottomBar = {
-            val backStackEntry by navController.currentBackStackEntryAsState()
-            val currentRoute = backStackEntry?.destination?.route
-            NavigationBar(
-                containerColor = deskBackground,
-                modifier = Modifier.height(60.dp),
-            ) {
-                bottomNavItems.forEach { item ->
-                    NavigationBarItem(
-                        selected = !showEvents && currentRoute == item.screen.route,
-                        onClick = {
-                            showEvents = false
-                            navController.navigate(item.screen.route) {
-                                popUpTo(navController.graph.startDestinationId) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        },
-                        icon = { Icon(item.icon, contentDescription = null, modifier = Modifier.size(20.dp)) },
-                        label = { Text(stringResource(item.labelRes), style = MaterialTheme.typography.labelSmall) },
-                        colors = androidx.compose.material3.NavigationBarItemDefaults.colors(
-                            selectedIconColor = com.yarom.jewishcalendar.ui.theme.Parchment,
-                            selectedTextColor = com.yarom.jewishcalendar.ui.theme.DeepTeal,
-                            indicatorColor = com.yarom.jewishcalendar.ui.theme.DeepTeal,
-                            unselectedIconColor = com.yarom.jewishcalendar.ui.theme.DeepTeal.copy(alpha = 0.6f),
-                            unselectedTextColor = com.yarom.jewishcalendar.ui.theme.DeepTeal.copy(alpha = 0.6f),
-                        ),
-                    )
+            if (!isFullscreen) {
+                val backStackEntry by navController.currentBackStackEntryAsState()
+                val currentRoute = backStackEntry?.destination?.route
+                NavigationBar(
+                    containerColor = deskBackground,
+                    modifier = Modifier.height(60.dp),
+                ) {
+                    bottomNavItems.forEach { item ->
+                        NavigationBarItem(
+                            selected = !showEvents && currentRoute == item.screen.route,
+                            onClick = {
+                                showEvents = false
+                                navController.navigate(item.screen.route) {
+                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                            icon = { Icon(item.icon, contentDescription = null, modifier = Modifier.size(20.dp)) },
+                            label = { Text(stringResource(item.labelRes), style = MaterialTheme.typography.labelSmall) },
+                            colors = androidx.compose.material3.NavigationBarItemDefaults.colors(
+                                selectedIconColor = com.yarom.jewishcalendar.ui.theme.Parchment,
+                                selectedTextColor = com.yarom.jewishcalendar.ui.theme.DeepTeal,
+                                indicatorColor = com.yarom.jewishcalendar.ui.theme.DeepTeal,
+                                unselectedIconColor = com.yarom.jewishcalendar.ui.theme.DeepTeal.copy(alpha = 0.6f),
+                                unselectedTextColor = com.yarom.jewishcalendar.ui.theme.DeepTeal.copy(alpha = 0.6f),
+                            ),
+                        )
+                    }
                 }
             }
         },

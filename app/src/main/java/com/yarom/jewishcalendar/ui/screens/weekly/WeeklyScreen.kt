@@ -80,6 +80,7 @@ fun WeeklyScreen(
 ) {
     val selectedDate by calendarViewModel.selectedDate.collectAsState()
     val settings by calendarViewModel.settings.collectAsState()
+    val isFullscreen by calendarViewModel.isFullscreen.collectAsState()
     val today by rememberCurrentDate()
     var sheetDate by remember { mutableStateOf<LocalDate?>(null) }
     var editingEvent by remember { mutableStateOf<com.yarom.jewishcalendar.data.local.entity.EventEntity?>(null) }
@@ -126,6 +127,8 @@ fun WeeklyScreen(
                 onZoomChange = { zoomScale = it },
                 onSearchClick = { showDateSearch = true },
                 onTodayClick = { jumpToDate(today) },
+                isFullscreen = isFullscreen,
+                onFullscreenToggle = { calendarViewModel.toggleFullscreen() },
             )
 
             HorizontalPager(state = pagerState, modifier = Modifier.fillMaxWidth().weight(1f)) { page ->
@@ -213,6 +216,8 @@ private fun WeekHeader(
     onZoomChange: (Float) -> Unit,
     onSearchClick: () -> Unit,
     onTodayClick: () -> Unit,
+    isFullscreen: Boolean,
+    onFullscreenToggle: () -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 4.dp),
@@ -230,6 +235,8 @@ private fun WeekHeader(
             onZoomChange = onZoomChange,
             onSearchClick = onSearchClick,
             onTodayClick = onTodayClick,
+            isFullscreen = isFullscreen,
+            onFullscreenToggle = onFullscreenToggle,
             minZoom = MIN_ZOOM,
             maxZoom = MAX_ZOOM,
         )

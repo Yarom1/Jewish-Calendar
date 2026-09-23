@@ -29,11 +29,20 @@ class CalendarViewModel(
     private val _selectedDate = MutableStateFlow(LocalDate.now())
     val selectedDate: StateFlow<LocalDate> = _selectedDate.asStateFlow()
 
+    // Shared across the weekly/daily/monthly views (spec follow-up) so the fullscreen toggle in
+    // any one of them hides the bottom nav bar and system bars app-wide, not just locally.
+    private val _isFullscreen = MutableStateFlow(false)
+    val isFullscreen: StateFlow<Boolean> = _isFullscreen.asStateFlow()
+
     val settings: StateFlow<AppSettings?> = settingsRepository.settingsFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     fun selectDate(date: LocalDate) {
         _selectedDate.value = date
+    }
+
+    fun toggleFullscreen() {
+        _isFullscreen.value = !_isFullscreen.value
     }
 
     fun hebrewDateFor(date: LocalDate): HebrewDate = hebrewDateConverter.fromGregorian(date)

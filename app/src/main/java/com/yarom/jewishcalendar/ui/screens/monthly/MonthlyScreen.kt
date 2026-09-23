@@ -52,6 +52,7 @@ private const val ANCHOR_PAGE = Int.MAX_VALUE / 2
 @Composable
 fun MonthlyScreen(calendarViewModel: CalendarViewModel, eventViewModel: EventViewModel, onDayOpened: () -> Unit) {
     val selectedDate by calendarViewModel.selectedDate.collectAsState()
+    val isFullscreen by calendarViewModel.isFullscreen.collectAsState()
     val today by rememberCurrentDate()
     var sheetDate by remember { mutableStateOf<LocalDate?>(null) }
     var zoomScale by remember { mutableStateOf(1f) }
@@ -97,6 +98,8 @@ fun MonthlyScreen(calendarViewModel: CalendarViewModel, eventViewModel: EventVie
                     onZoomChange = { zoomScale = it },
                     onSearchClick = { showDateSearch = true },
                     onTodayClick = { jumpToDate(today) },
+                    isFullscreen = isFullscreen,
+                    onFullscreenToggle = { calendarViewModel.toggleFullscreen() },
                     minZoom = MIN_ZOOM,
                     maxZoom = MAX_ZOOM,
                 )

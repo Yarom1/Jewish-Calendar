@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Fullscreen
+import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Today
@@ -16,8 +18,8 @@ import androidx.compose.ui.unit.dp
 import com.yarom.jewishcalendar.ui.theme.DeepTeal
 
 /**
- * The zoom (+/-), jump-to-date search, and "back to today" controls shared by every calendar
- * view (spec follow-up: these three controls should be available consistently everywhere, not
+ * The zoom (+/-), jump-to-date search, "back to today" and fullscreen controls shared by every
+ * calendar view (spec follow-up: these controls should be available consistently everywhere, not
  * just in the weekly view).
  */
 @Composable
@@ -26,11 +28,20 @@ fun ViewControlsRow(
     onZoomChange: (Float) -> Unit,
     onSearchClick: () -> Unit,
     onTodayClick: () -> Unit,
+    isFullscreen: Boolean,
+    onFullscreenToggle: () -> Unit,
     modifier: Modifier = Modifier,
     minZoom: Float = 0.7f,
     maxZoom: Float = 2.2f,
 ) {
     Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
+        IconButton(onClick = onFullscreenToggle, modifier = Modifier.width(28.dp)) {
+            Icon(
+                if (isFullscreen) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
+                contentDescription = if (isFullscreen) "יציאה ממסך מלא" else "מסך מלא",
+                tint = DeepTeal,
+            )
+        }
         IconButton(onClick = onTodayClick, modifier = Modifier.width(28.dp)) {
             Icon(Icons.Default.Today, contentDescription = "חזרה להיום", tint = DeepTeal)
         }

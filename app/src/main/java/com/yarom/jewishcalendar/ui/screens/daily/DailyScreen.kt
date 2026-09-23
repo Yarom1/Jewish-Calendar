@@ -68,6 +68,7 @@ private const val MAX_ZOOM = 2.0f
 fun DailyScreen(calendarViewModel: CalendarViewModel, eventViewModel: EventViewModel) {
     val selectedDate by calendarViewModel.selectedDate.collectAsState()
     val settings by calendarViewModel.settings.collectAsState()
+    val isFullscreen by calendarViewModel.isFullscreen.collectAsState()
     val today by rememberCurrentDate()
     var showAddSheet by remember { mutableStateOf(false) }
     var editingEvent by remember { mutableStateOf<EventEntity?>(null) }
@@ -112,6 +113,8 @@ fun DailyScreen(calendarViewModel: CalendarViewModel, eventViewModel: EventViewM
                         onZoomChange = { zoomScale = it },
                         onSearchClick = { showDateSearch = true },
                         onTodayClick = { jumpToDate(today) },
+                        isFullscreen = isFullscreen,
+                        onFullscreenToggle = { calendarViewModel.toggleFullscreen() },
                         minZoom = MIN_ZOOM,
                         maxZoom = MAX_ZOOM,
                     )

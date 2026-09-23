@@ -46,7 +46,7 @@ private const val MIN_ZOOM = 0.7f
 private const val MAX_ZOOM = 1.6f
 
 @Composable
-fun MonthlyScreen(calendarViewModel: CalendarViewModel, eventViewModel: EventViewModel) {
+fun MonthlyScreen(calendarViewModel: CalendarViewModel, eventViewModel: EventViewModel, onDayOpened: () -> Unit) {
     val selectedDate by calendarViewModel.selectedDate.collectAsState()
     val today by rememberCurrentDate()
     var currentMonth by remember(selectedDate) { mutableStateOf(YearMonth.from(selectedDate)) }
@@ -117,7 +117,10 @@ fun MonthlyScreen(calendarViewModel: CalendarViewModel, eventViewModel: EventVie
                             hasEvents = occurrences.any { it.date == date },
                             today = today,
                             zoomScale = zoomScale,
-                            onClick = { calendarViewModel.selectDate(date) },
+                            onClick = {
+                                calendarViewModel.selectDate(date)
+                                onDayOpened()
+                            },
                             onLongPress = { sheetDate = date },
                             modifier = Modifier
                                 .weight(1f)

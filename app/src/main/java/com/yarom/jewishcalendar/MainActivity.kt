@@ -209,7 +209,17 @@ private fun CalendarApp(
                     )
                 }
                 composable(Screen.Daily.route) { DailyScreen(calendarViewModel, eventViewModel) }
-                composable(Screen.Monthly.route) { MonthlyScreen(calendarViewModel, eventViewModel) }
+                composable(Screen.Monthly.route) {
+                    MonthlyScreen(
+                        calendarViewModel = calendarViewModel,
+                        eventViewModel = eventViewModel,
+                        onDayOpened = {
+                            navController.navigate(Screen.Daily.route) {
+                                launchSingleTop = true
+                            }
+                        },
+                    )
+                }
                 composable(Screen.Settings.route) {
                     SettingsScreen(
                         settingsViewModel = settingsViewModel,

@@ -183,12 +183,15 @@ fun DailyScreen(calendarViewModel: CalendarViewModel, eventViewModel: EventViewM
                             modifier = Modifier.padding(top = 12.dp, bottom = 4.dp),
                         )
                         // Daily always shows every zman - not limited by the settings toggles,
-                        // which only govern the compact weekly rows (spec follow-up).
+                        // which only govern the compact weekly rows (spec follow-up) - except
+                        // candle lighting, which only ever applies on an erev Shabbos/Yom Tov,
+                        // not as a "regular" daily zman.
                         settings?.let { daySettings ->
                             val zmanim = remember(date, daySettings) {
                                 calendarViewModel.zmanimFor(date, daySettings.coordinates, daySettings)
                             }
                             for (type in ZmanType.entries) {
+                                if (type == ZmanType.CANDLE_LIGHTING && !hebrewDate.isErevShabbosOrYomTov) continue
                                 ZmanRow(type = type, time = zmanim.times[type], zoomScale = zoomScale)
                             }
                         }

@@ -2,6 +2,7 @@ package com.yarom.jewishcalendar.domain.hebrew
 
 import com.kosherjava.zmanim.hebrewcalendar.HebrewDateFormatter
 import com.kosherjava.zmanim.hebrewcalendar.JewishCalendar
+import com.kosherjava.zmanim.hebrewcalendar.TefilaRules
 import com.kosherjava.zmanim.hebrewcalendar.YerushalmiYomiCalculator
 import com.kosherjava.zmanim.hebrewcalendar.YomiCalculator
 import java.time.LocalDate
@@ -32,6 +33,10 @@ data class HebrewDate(
     /** The day itself is Shabbos/Yom Tov and tomorrow isn't - havdalah/"exit" time applies. */
     val isMotzaeiShabbosOrYomTov: Boolean,
     val holidayName: String?,
+    /** True on an ordinary (non-Shabbos, non-Yom Tov) day when Tachanun is skipped - e.g. erev
+     * Rosh Hashana/Yom Kippur/Sukkot, Rosh Chodesh, Isru Chag - like the "לא תחנון" note on a
+     * printed luach. Shabbos/Yom Tov never say Tachanun either, but don't need the note. */
+    val noTachanun: Boolean,
     val parashaName: String?,
     /** "הפטרת השבת" for a regular week, or the special Shabbat's own name (e.g. "שבת חנוכה"). */
     val haftarahHeading: String?,
@@ -53,6 +58,7 @@ class HebrewDateConverter(private val useHebrewFormat: Boolean = true) {
         isUseGershGershayim = true
         isUseLongHebrewYears = false
     }
+    private val tefilaRules = TefilaRules()
 
     fun fromGregorian(date: LocalDate, timeZone: TimeZone = TimeZone.getDefault()): HebrewDate {
         val calendar = Calendar.getInstance(timeZone).apply {
@@ -82,6 +88,9 @@ class HebrewDateConverter(private val useHebrewFormat: Boolean = true) {
         val holidayName = if (yomTovIndex != -1) {
             formatter.formatYomTov(jewishCalendar).ifBlank { null }
         } else null
+        val isShabbos = jewishCalendar.dayOfWeek == Calendar.SATURDAY
+        val isYomTov = jewishCalendar.isYomTov
+        val noTachanun = !isShabbos && !isYomTov && !tefilaRules.isTachanunRecitedShacharis(jewishCalendar)
 
         val upcomingSaturday = advanceToSaturday(jewishCalendar)
         // NOTE: deliberately NOT KosherJava's own upcomingParshah - it always jumps to the
@@ -114,14 +123,15 @@ class HebrewDateConverter(private val useHebrewFormat: Boolean = true) {
             hebrewMonthName = formatter.formatMonth(jewishCalendar),
             hebrewDayOfMonthLabel = formatter.formatHebrewNumber(jewishCalendar.jewishDayOfMonth),
             hebrewYearLabel = formatter.formatHebrewNumber(jewishCalendar.jewishYear),
-            isShabbos = jewishCalendar.dayOfWeek == Calendar.SATURDAY,
+            isShabbos = isShabbos,
             isRoshChodesh = jewishCalendar.isRoshChodesh,
-            isYomTov = jewishCalendar.isYomTov,
+            isYomTov = isYomTov,
             isCholHamoed = jewishCalendar.isCholHamoed,
             isTaanis = jewishCalendar.isTaanis,
             isErevShabbosOrYomTov = jewishCalendar.isTomorrowShabbosOrYomTov,
             isMotzaeiShabbosOrYomTov = isMotzaei(jewishCalendar),
             holidayName = holidayName,
+            noTachanun = noTachanun,
             parashaName = parashaName,
             haftarahHeading = haftarahHeading,
             haftarahName = haftarahName,

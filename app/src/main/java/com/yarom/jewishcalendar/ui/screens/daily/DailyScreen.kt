@@ -168,7 +168,11 @@ fun DailyScreen(calendarViewModel: CalendarViewModel, eventViewModel: EventViewM
                             )
                         }
 
-                        val summary = listOfNotNull(hebrewDate.holidayName, hebrewDate.parashaName).joinToString("  ·  ")
+                        val summary = listOfNotNull(
+                            hebrewDate.holidayName,
+                            "לא תחנון".takeIf { hebrewDate.noTachanun },
+                            hebrewDate.parashaName,
+                        ).joinToString("  ·  ")
                         if (summary.isNotBlank()) {
                             Text(
                                 summary,

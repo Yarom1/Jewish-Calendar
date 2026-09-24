@@ -220,29 +220,36 @@ private fun WeekHeader(
     isFullscreen: Boolean,
     onFullscreenToggle: () -> Unit,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        val hebrewHeader = calendarViewModel.hebrewDateFor(weekStart)
-        Text(
-            text = "${hebrewHeader.hebrewMonthName} ${hebrewHeader.hebrewYearLabel}",
-            style = MaterialTheme.typography.titleMedium,
-            color = DeepTeal,
-        )
-        ViewControlsRow(
-            zoomScale = zoomScale,
-            onZoomChange = onZoomChange,
-            onSearchClick = onSearchClick,
-            onTodayClick = onTodayClick,
-            isFullscreen = isFullscreen,
-            onFullscreenToggle = onFullscreenToggle,
-            minZoom = MIN_ZOOM,
-            maxZoom = MAX_ZOOM,
-        )
-        val gregorianLabel = weekStart.month.getDisplayName(TextStyle.FULL, Locale("he")) + " " + weekStart.year
-        Text(gregorianLabel, style = MaterialTheme.typography.titleMedium, color = DeepTeal)
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 4.dp)) {
+        // Split across two rows - controls above, month labels below (spec follow-up: with the
+        // fullscreen button added, five icons plus both month labels no longer fit on one line
+        // without the Gregorian label wrapping awkwardly).
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            ViewControlsRow(
+                zoomScale = zoomScale,
+                onZoomChange = onZoomChange,
+                onSearchClick = onSearchClick,
+                onTodayClick = onTodayClick,
+                isFullscreen = isFullscreen,
+                onFullscreenToggle = onFullscreenToggle,
+                minZoom = MIN_ZOOM,
+                maxZoom = MAX_ZOOM,
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            val hebrewHeader = calendarViewModel.hebrewDateFor(weekStart)
+            Text(
+                text = "${hebrewHeader.hebrewMonthName} ${hebrewHeader.hebrewYearLabel}",
+                style = MaterialTheme.typography.titleMedium,
+                color = DeepTeal,
+            )
+            val gregorianLabel = weekStart.month.getDisplayName(TextStyle.FULL, Locale("he")) + " " + weekStart.year
+            Text(gregorianLabel, style = MaterialTheme.typography.titleMedium, color = DeepTeal)
+        }
     }
 }
 

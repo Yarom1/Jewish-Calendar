@@ -59,12 +59,15 @@ class HebrewDateConverter(private val useHebrewFormat: Boolean = true) {
             clear()
             set(date.year, date.monthValue - 1, date.dayOfMonth)
         }
-        val jewishCalendar = JewishCalendar(calendar)
+        // This app is Israel-only (Hebrew UI, Israeli zmanim/city presets, Israeli week start) -
+        // without this, KosherJava defaults to Diaspora two-day Yom Tov rules, which misclassifies
+        // e.g. 16 Tishrei/22 Nissan as a second Yom Tov day instead of Chol Hamoed (spec follow-up).
+        val jewishCalendar = JewishCalendar(calendar).apply { inIsrael = true }
         return toHebrewDate(jewishCalendar, date)
     }
 
     fun hebrewDateToGregorian(hebrewYear: Int, hebrewMonth: Int, hebrewDay: Int): LocalDate {
-        val jewishCalendar = JewishCalendar()
+        val jewishCalendar = JewishCalendar().apply { inIsrael = true }
         jewishCalendar.setJewishDate(hebrewYear, hebrewMonth, hebrewDay)
         val cal = jewishCalendar.gregorianCalendar
         return LocalDate.of(
@@ -80,15 +83,28 @@ class HebrewDateConverter(private val useHebrewFormat: Boolean = true) {
             formatter.formatYomTov(jewishCalendar).ifBlank { null }
         } else null
 
-        val upcomingParsha = jewishCalendar.upcomingParshah
         val upcomingSaturday = advanceToSaturday(jewishCalendar)
+        // NOTE: deliberately NOT KosherJava's own upcomingParshah - it always jumps to the
+        // FOLLOWING Saturday's reading even when called on a Saturday itself (its own javadoc:
+        // "next Shabbos's Parsha will be returned"), which silently mismatched the haftarah
+        // against the parasha name shown for every ordinary Shabbat, and for a Saturday whose own
+        // reading is genuinely NONE (Yom Tov/Chol Hamoed, e.g. Shabbat Sukkot) it substituted next
+        // week's regular haftarah instead of leaving room for the Yom Tov override below (spec
+        // follow-up: user-reported wrong haftarah for Shabbat Sukkot, and for "regular" weeks too).
+        // upcomingSaturday is already positioned on the correct target Saturday (this one if
+        // today is Saturday, otherwise the coming one), so its own .parshah is exactly right.
+        val upcomingParsha = upcomingSaturday.parshah
         val parashaName = if (upcomingParsha == JewishCalendar.Parsha.NONE) {
             null
         } else {
             formatter.formatParsha(upcomingSaturday).ifBlank { null }
         }
-        val haftarahHeading = if (upcomingParsha == JewishCalendar.Parsha.NONE) null else specialShabbosLabel(upcomingSaturday)
-        val haftarahName = if (upcomingParsha == JewishCalendar.Parsha.NONE) null else haftarahFor(upcomingSaturday, upcomingParsha)
+        // NOT gated on upcomingParsha - a NONE reading is exactly the case (Yom Tov/Chol Hamoed
+        // Shabbat) the overrides in specialShabbosFor() exist to cover; haftarahFor() already
+        // falls back to null on its own when there's truly neither an override nor a regular
+        // reading, so gating here a second time would just suppress those overrides outright.
+        val haftarahHeading = specialShabbosLabel(upcomingSaturday)
+        val haftarahName = haftarahFor(upcomingSaturday, upcomingParsha)
 
         return HebrewDate(
             gregorianDate = gregorianDate,

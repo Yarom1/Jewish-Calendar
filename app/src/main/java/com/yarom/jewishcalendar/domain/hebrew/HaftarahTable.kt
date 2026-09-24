@@ -16,7 +16,12 @@ import java.util.Calendar
  * davening.
  */
 private data class Haftarah(val book: String, val chapter: String, val opening: String) {
-    fun format(): String = "$book פרק $chapter - $opening"
+    /** Only the first few words, like a printed luach citation - not the full opening clause
+     * (spec follow-up: was showing the whole first verse/clause, too long for the bar). */
+    fun format(): String {
+        val shortOpening = opening.trim().split(Regex("\\s+")).take(3).joinToString(" ")
+        return "$book פרק $chapter - $shortOpening"
+    }
 }
 
 /** Standard Ashkenazi haftarah for each regular weekly parasha, when no special Shabbat overrides it. */
@@ -36,7 +41,7 @@ private val haftarahByParsha: Map<Parsha, Haftarah> = mapOf(
     Parsha.SHEMOS to Haftarah("ישעיהו", "כ\"ז", "הבאים ישרש יעקב"),
     Parsha.VAERA to Haftarah("יחזקאל", "כ\"ח", "כה אמר אדני אלוקים בקבצי את בית ישראל"),
     Parsha.BO to Haftarah("ירמיהו", "מ\"ו", "הדבר אשר דבר ה' אל ירמיהו הנביא לבוא נבוכדראצר"),
-    Parsha.BESHALACH to Haftarah("שופטים", "ד'", "ותשר דבורה וברק בן אבינעם"),
+    Parsha.BESHALACH to Haftarah("שופטים", "ד'", "ודבורה אשה נביאה אשת לפידות"),
     Parsha.YISRO to Haftarah("ישעיהו", "ו'", "בשנת מות המלך עזיהו"),
     Parsha.MISHPATIM to Haftarah("ירמיהו", "ל\"ד", "הדבר אשר היה אל ירמיהו מאת ה' אחרי כרת המלך צדקיהו"),
     Parsha.TERUMAH to Haftarah("מלכים א'", "ה'", "וה' נתן חכמה לשלמה"),
@@ -44,10 +49,13 @@ private val haftarahByParsha: Map<Parsha, Haftarah> = mapOf(
     Parsha.KI_SISA to Haftarah("מלכים א'", "י\"ח", "ויהי ימים רבים ודבר ה' היה אל אליהו"),
     Parsha.VAYAKHEL to Haftarah("מלכים א'", "ז'", "וישלח המלך שלמה ויקח את חירם מצר"),
     Parsha.PEKUDEI to Haftarah("מלכים א'", "ז'", "ותשלם כל המלאכה אשר עשה המלך שלמה"),
-    Parsha.VAYAKHEL_PEKUDEI to Haftarah("מלכים א'", "ז'", "וישלח המלך שלמה ויקח את חירם מצר"),
+    // Combined parshiyot use the LATER one's haftarah (same rule already applied below for
+    // Tazria-Metzora, Achrei Mos-Kedoshim, Behar-Bechukosai, Chukas-Balak, Matos-Masei) - this
+    // was wrongly using Vayakhel's own haftarah instead of Pekudei's (spec follow-up).
+    Parsha.VAYAKHEL_PEKUDEI to Haftarah("מלכים א'", "ז'", "ותשלם כל המלאכה אשר עשה המלך שלמה"),
     Parsha.VAYIKRA to Haftarah("ישעיהו", "מ\"ג", "עם זו יצרתי לי תהלתי יספרו"),
     Parsha.TZAV to Haftarah("ירמיהו", "ז'", "כה אמר ה' צבאות אלוקי ישראל עלותיכם ספו על זבחיכם"),
-    Parsha.SHMINI to Haftarah("שמואל ב'", "ו'", "ויאסף עוד דוד את כל בחור בישראל"),
+    Parsha.SHMINI to Haftarah("שמואל ב'", "ו'", "ויסף עוד דוד את כל בחור בישראל"),
     Parsha.TAZRIA to Haftarah("מלכים ב'", "ד'", "ואיש בא מבעל שלישה"),
     Parsha.METZORA to Haftarah("מלכים ב'", "ז'", "וארבעה אנשים היו מצרעים"),
     Parsha.TAZRIA_METZORA to Haftarah("מלכים ב'", "ז'", "וארבעה אנשים היו מצרעים"),
@@ -96,8 +104,10 @@ private val shuvaHaftarah = Haftarah("הושע", "י\"ד", "שובה ישראל 
  * Returns the special-Shabbat override for [saturday] (a [JewishCalendar] already advanced to
  * the relevant Shabbos), or null on a regular Shabbat with no override. Ordered by halachic
  * precedence: the four parshiyot / Hagadol / Chazon / Nachamu / Shuva (all mutually exclusive by
- * month, computed by KosherJava's own getSpecialShabbos()) outrank Chanukah, which outranks a
- * plain Shabbat Rosh Chodesh, which outranks Shabbat Mevarchim/Machar Chodesh.
+ * month, computed by KosherJava's own getSpecialShabbos()) outrank a Yom Tov day that happens to
+ * fall on Shabbat (Rosh Hashana, Sukkot/Pesach/Shavuos day 1, Chol Hamoed, Shmini Atzeres), which
+ * outranks Chanukah, which outranks a plain Shabbat Rosh Chodesh, which outranks Shabbat
+ * Mevarchim/Machar Chodesh.
  */
 private fun specialShabbosFor(saturday: JewishCalendar): SpecialShabbos? {
     if (saturday.dayOfWeek != Calendar.SATURDAY) return null
@@ -112,6 +122,35 @@ private fun specialShabbosFor(saturday: JewishCalendar): SpecialShabbos? {
         Parsha.NACHAMU -> return SpecialShabbos("שבת נחמו", nachamuHaftarah)
         Parsha.SHUVA -> return SpecialShabbos("שבת שובה", shuvaHaftarah)
         else -> {}
+    }
+
+    // Yom Tov days that can themselves fall on Shabbat (spec follow-up: previously unhandled,
+    // so e.g. Shabbat that is the first day of Sukkot fell through to the coming week's regular
+    // parsha's haftarah instead of the day's own - user-reported for Shabbat Sukkot). Each of
+    // these has its own fixed haftarah regardless of which weekday it falls on.
+    if (saturday.isRoshHashana) {
+        return SpecialShabbos("ראש השנה", Haftarah("שמואל א'", "א'", "ויהי איש אחד מן הרמתים צופים"))
+    }
+    if (saturday.yomTovIndex == JewishCalendar.YOM_KIPPUR) {
+        return SpecialShabbos("יום כיפור", Haftarah("ישעיהו", "נ\"ז", "וסלו סלו פנו דרך"))
+    }
+    if (saturday.yomTovIndex == JewishCalendar.SUCCOS) {
+        return SpecialShabbos("חג הסוכות", Haftarah("זכריה", "י\"ד", "הנה יום בא לה'"))
+    }
+    if (saturday.isCholHamoedSuccos) {
+        return SpecialShabbos("שבת חול המועד סוכות", Haftarah("יחזקאל", "ל\"ח", "והיה ביום ההוא ביום בוא גוג"))
+    }
+    if (saturday.yomTovIndex == JewishCalendar.SHEMINI_ATZERES) {
+        return SpecialShabbos("שמחת תורה", Haftarah("יהושע", "א'", "ויהי אחרי מות משה עבד ה'"))
+    }
+    if (saturday.yomTovIndex == JewishCalendar.PESACH) {
+        return SpecialShabbos("חג הפסח", Haftarah("יהושע", "ה'", "בעת ההיא אמר ה' אל יהושע"))
+    }
+    if (saturday.isCholHamoedPesach) {
+        return SpecialShabbos("שבת חול המועד פסח", Haftarah("יחזקאל", "ל\"ז", "ותהי עלי יד ה'"))
+    }
+    if (saturday.isShavuos) {
+        return SpecialShabbos("חג השבועות", Haftarah("יחזקאל", "א'", "ויהי בשלשים שנה ברביעי בחמשה לחדש"))
     }
 
     if (saturday.isChanukah) {

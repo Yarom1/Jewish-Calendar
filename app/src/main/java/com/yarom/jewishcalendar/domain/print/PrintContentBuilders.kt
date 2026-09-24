@@ -47,6 +47,7 @@ private fun dayLines(
     for (type in ZmanType.entries) {
         if (type !in settings.visibleZmanim) continue
         if (type == ZmanType.TZEIS_HAKOCHAVIM && hebrewDate.isMotzaeiShabbosOrYomTov) continue
+        if (type == ZmanType.CANDLE_LIGHTING && hebrewDate.isErevShabbosOrYomTov) continue
         lines.add(PrintLine(type.compactLabelPlain(context), zmanTimes[type].formatTime()))
     }
     for (title in eventTitles) {

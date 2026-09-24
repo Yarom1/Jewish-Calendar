@@ -15,9 +15,11 @@ import android.graphics.Typeface
  * for Shabbat/Yom Tov, serif type) so the printed page looks like the calendar itself rather than
  * a bare data table (spec follow-up: the previous plain-black-Paint table read as "empty").
  *
- * Text is right-aligned at the row's own right edge, which is enough to read correctly for
- * Hebrew (the platform's own bidi/shaping already renders the glyphs correctly - only the block
- * alignment needs to be handled here, since this is a simple label/value table, not mixed prose).
+ * Headers/titles are right-aligned at the row's right edge; each zman's value+label cluster is
+ * left-aligned at the row's left edge (mirroring the app's own on-screen ZmanLine under its RTL
+ * layout direction). The platform's own bidi/shaping already renders the Hebrew glyphs correctly
+ * - only the block alignment needs to be handled here, since this is a label/value table, not
+ * mixed prose.
  */
 object CalendarPrintRenderer {
 
@@ -194,12 +196,12 @@ object CalendarPrintRenderer {
     private fun dayCardHeight(day: PrintDayBlock): Float {
         var total = CARD_INSET * 2 + HEADER_SIZE * 1.3f
         if (day.noteLine != null) total += NOTE_SIZE * 1.3f
-        total += day.lines.size * LINE_SIZE * 1.35f
+        total += day.lines.size * LINE_SIZE * 1.5f
         return total
     }
 
     private fun sectionCardHeight(lineCount: Int): Float =
-        CARD_INSET * 2 + HEADER_SIZE * 1.3f + lineCount * LINE_SIZE * 1.35f
+        CARD_INSET * 2 + HEADER_SIZE * 1.3f + lineCount * LINE_SIZE * 1.5f
 
     private fun summaryBandHeight(): Float = NOTE_SIZE * 1.35f + CARD_INSET * 2
 
@@ -246,7 +248,7 @@ object CalendarPrintRenderer {
             canvas.drawText(it, textRight, rowTop + notePaint.textSize, notePaint)
             rowTop += notePaint.textSize * 1.3f
         }
-        drawLines(canvas, day.lines, textRight, textLeft, rowTop, LINE_SIZE * scale)
+        drawLines(canvas, day.lines, textLeft, rowTop, LINE_SIZE * scale)
         return cardBottom
     }
 
@@ -267,7 +269,7 @@ object CalendarPrintRenderer {
         val headerPaint = textPaint(HEADER_SIZE * scale, bold = true, color = TEAL)
         canvas.drawText(title, textRight, rowTop + headerPaint.textSize, headerPaint)
         rowTop += headerPaint.textSize * 1.3f
-        drawLines(canvas, lines, textRight, textLeft, rowTop, LINE_SIZE * scale)
+        drawLines(canvas, lines, textLeft, rowTop, LINE_SIZE * scale)
         return cardBottom
     }
 
@@ -343,18 +345,22 @@ object CalendarPrintRenderer {
         }
     }
 
-    /** Label anchored at the row's right edge (Hebrew reading start), value/time pinned to the
-     * row's left edge - matching the classic printed-luach layout (spec follow-up: times used to
-     * sit clustered right next to their label instead of lining up down the page's left side). */
-    private fun drawLines(canvas: Canvas, lines: List<PrintLine>, right: Float, left: Float, startY: Float, textSize: Float): Float {
+    /** Value/time and its label drawn as one cluster pinned to the row's left edge (time first,
+     * label just to its right) - this mirrors the app's own on-screen ZmanLine, which under the
+     * app's RTL layout direction pins that same [Spacer(weight) - label - time] cluster to the
+     * left with the flexible gap on the right (spec follow-up: an earlier version spread label
+     * and value across the whole row width instead of keeping them together like the on-screen
+     * calendar does). */
+    private fun drawLines(canvas: Canvas, lines: List<PrintLine>, left: Float, startY: Float, textSize: Float): Float {
         var rowTop = startY
-        val labelPaint = textPaint(textSize, color = INK_MUTED)
+        val labelPaint = textPaint(textSize, color = INK_MUTED).apply { textAlign = Paint.Align.LEFT }
         val valuePaint = textPaint(textSize, bold = true, color = TEAL).apply { textAlign = Paint.Align.LEFT }
         for (line in lines) {
             val baseline = rowTop + textSize
-            canvas.drawText(line.label, right, baseline, labelPaint)
             canvas.drawText(line.value, left, baseline, valuePaint)
-            rowTop += textSize * 1.35f
+            val valueWidth = valuePaint.measureText(line.value)
+            canvas.drawText(line.label, left + valueWidth + textSize * 0.5f, baseline, labelPaint)
+            rowTop += textSize * 1.5f
         }
         return rowTop
     }

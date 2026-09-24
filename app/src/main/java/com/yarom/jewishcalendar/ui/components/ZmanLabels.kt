@@ -1,5 +1,6 @@
 package com.yarom.jewishcalendar.ui.components
 
+import android.content.Context
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
@@ -33,4 +34,12 @@ fun ZmanType.compactLabel(): String = when (this) {
     ZmanType.SOF_ZMAN_SHEMA_GRA -> "ק\"ש (גר\"א)"
     ZmanType.SOF_ZMAN_SHEMA_MGA -> "ק\"ש (מג\"א)"
     else -> stringResource(labelRes())
+}
+
+/** Same as [compactLabel], for non-Composable call sites (e.g. building print content off the
+ * UI thread) that can't call stringResource(). */
+fun ZmanType.compactLabelPlain(context: Context): String = when (this) {
+    ZmanType.SOF_ZMAN_SHEMA_GRA -> "ק\"ש (גר\"א)"
+    ZmanType.SOF_ZMAN_SHEMA_MGA -> "ק\"ש (מג\"א)"
+    else -> context.getString(labelRes())
 }

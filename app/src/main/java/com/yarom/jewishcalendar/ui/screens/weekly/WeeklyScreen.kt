@@ -89,6 +89,8 @@ fun WeeklyScreen(
     var editingEvent by remember { mutableStateOf<com.yarom.jewishcalendar.data.local.entity.EventEntity?>(null) }
     var zoomScale by remember { mutableStateOf(1f) }
     var showDateSearch by remember { mutableStateOf(false) }
+    var showPrintDialog by remember { mutableStateOf(false) }
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     val anchorWeekStart = remember { calendarViewModel.weekDates(selectedDate).first() }
     val initialSelectedDate = remember { selectedDate }
@@ -132,6 +134,7 @@ fun WeeklyScreen(
                 onTodayClick = { jumpToDate(today) },
                 isFullscreen = isFullscreen,
                 onFullscreenToggle = { calendarViewModel.toggleFullscreen() },
+                onPrintClick = { showPrintDialog = true },
             )
 
             HorizontalPager(state = pagerState, modifier = Modifier.fillMaxWidth().weight(1f)) { page ->
@@ -213,6 +216,30 @@ fun WeeklyScreen(
             },
         )
     }
+    if (showPrintDialog) {
+        com.yarom.jewishcalendar.ui.components.PrintOptionsDialog(
+            onDismiss = { showPrintDialog = false },
+            onConfirm = { copies ->
+                showPrintDialog = false
+                val weekStartForPrint = displayedWeekStart
+                coroutineScope.launch {
+                    val daySettings = settings ?: return@launch
+                    val content = com.yarom.jewishcalendar.domain.print.buildWeekPrintContent(
+                        calendarViewModel,
+                        context,
+                        weekStartForPrint,
+                        daySettings,
+                    )
+                    com.yarom.jewishcalendar.domain.print.printCalendarContent(
+                        context,
+                        "לוח שבועי",
+                        com.yarom.jewishcalendar.domain.print.PrintContent.Week(content),
+                        copies,
+                    )
+                }
+            },
+        )
+    }
 }
 
 @Composable
@@ -225,6 +252,7 @@ private fun WeekHeader(
     onTodayClick: () -> Unit,
     isFullscreen: Boolean,
     onFullscreenToggle: () -> Unit,
+    onPrintClick: () -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 4.dp)) {
         // Split across two rows - controls above, month labels below (spec follow-up: with the
@@ -238,6 +266,7 @@ private fun WeekHeader(
                 onTodayClick = onTodayClick,
                 isFullscreen = isFullscreen,
                 onFullscreenToggle = onFullscreenToggle,
+                onPrintClick = onPrintClick,
                 minZoom = MIN_ZOOM,
                 maxZoom = MAX_ZOOM,
             )

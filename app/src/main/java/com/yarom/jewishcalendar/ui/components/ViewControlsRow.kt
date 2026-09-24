@@ -6,6 +6,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.FullscreenExit
+import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Today
@@ -30,11 +31,15 @@ fun ViewControlsRow(
     onTodayClick: () -> Unit,
     isFullscreen: Boolean,
     onFullscreenToggle: () -> Unit,
+    onPrintClick: () -> Unit,
     modifier: Modifier = Modifier,
     minZoom: Float = 0.7f,
     maxZoom: Float = 2.2f,
 ) {
     Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
+        IconButton(onClick = onPrintClick, modifier = Modifier.width(28.dp)) {
+            Icon(Icons.Default.Print, contentDescription = "הדפסה", tint = DeepTeal)
+        }
         IconButton(onClick = onFullscreenToggle, modifier = Modifier.width(28.dp)) {
             Icon(
                 if (isFullscreen) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,

@@ -36,6 +36,7 @@ import com.yarom.jewishcalendar.ui.components.rememberCurrentDate
 import com.yarom.jewishcalendar.ui.screens.addevent.AddEventSheet
 import com.yarom.jewishcalendar.ui.theme.DeepTeal
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
@@ -57,6 +58,8 @@ fun MonthlyScreen(calendarViewModel: CalendarViewModel, eventViewModel: EventVie
     var sheetDate by remember { mutableStateOf<LocalDate?>(null) }
     var zoomScale by remember { mutableStateOf(1f) }
     var showDateSearch by remember { mutableStateOf(false) }
+    var showPrintDialog by remember { mutableStateOf(false) }
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     val anchorMonth = remember { YearMonth.from(selectedDate) }
     val initialSelectedDate = remember { selectedDate }
@@ -86,23 +89,24 @@ fun MonthlyScreen(calendarViewModel: CalendarViewModel, eventViewModel: EventVie
 
     CalendarPageFrame(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
-                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
+            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp)) {
+                // Split across two rows, matching the weekly header (spec follow-up: six icons
+                // plus the month label no longer fit on one line without wrapping).
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    ViewControlsRow(
+                        zoomScale = zoomScale,
+                        onZoomChange = { zoomScale = it },
+                        onSearchClick = { showDateSearch = true },
+                        onTodayClick = { jumpToDate(today) },
+                        isFullscreen = isFullscreen,
+                        onFullscreenToggle = { calendarViewModel.toggleFullscreen() },
+                        onPrintClick = { showPrintDialog = true },
+                        minZoom = MIN_ZOOM,
+                        maxZoom = MAX_ZOOM,
+                    )
+                }
                 val monthLabel = displayedMonth.month.getDisplayName(TextStyle.FULL, Locale("he")) + " " + displayedMonth.year
                 Text(monthLabel, style = MaterialTheme.typography.titleMedium, color = DeepTeal)
-                ViewControlsRow(
-                    zoomScale = zoomScale,
-                    onZoomChange = { zoomScale = it },
-                    onSearchClick = { showDateSearch = true },
-                    onTodayClick = { jumpToDate(today) },
-                    isFullscreen = isFullscreen,
-                    onFullscreenToggle = { calendarViewModel.toggleFullscreen() },
-                    minZoom = MIN_ZOOM,
-                    maxZoom = MAX_ZOOM,
-                )
             }
 
             Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
@@ -182,6 +186,33 @@ fun MonthlyScreen(calendarViewModel: CalendarViewModel, eventViewModel: EventVie
             onHebrewDateChosen = { year, month, day ->
                 showDateSearch = false
                 calendarViewModel.gregorianForHebrew(year, month, day)?.let { jumpToDate(it) }
+            },
+        )
+    }
+    if (showPrintDialog) {
+        com.yarom.jewishcalendar.ui.components.PrintOptionsDialog(
+            onDismiss = { showPrintDialog = false },
+            onConfirm = { copies ->
+                showPrintDialog = false
+                val monthForPrint = displayedMonth
+                coroutineScope.launch {
+                    val gridDates = calendarViewModel.monthGridDates(monthForPrint)
+                    val occurrences = calendarViewModel.eventRepository
+                        .observeOccurrences(gridDates.first()..gridDates.last())
+                        .first()
+                    val eventDates = occurrences.map { it.date }.toSet()
+                    val content = com.yarom.jewishcalendar.domain.print.buildMonthPrintContent(
+                        calendarViewModel,
+                        monthForPrint,
+                        today,
+                    ) { date -> date in eventDates }
+                    com.yarom.jewishcalendar.domain.print.printCalendarContent(
+                        context,
+                        "לוח חודשי",
+                        com.yarom.jewishcalendar.domain.print.PrintContent.Month(content),
+                        copies,
+                    )
+                }
             },
         )
     }

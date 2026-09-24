@@ -76,6 +76,8 @@ fun DailyScreen(calendarViewModel: CalendarViewModel, eventViewModel: EventViewM
     var editingEvent by remember { mutableStateOf<EventEntity?>(null) }
     var zoomScale by remember { mutableStateOf(1f) }
     var showDateSearch by remember { mutableStateOf(false) }
+    var showPrintDialog by remember { mutableStateOf(false) }
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     val anchorDate = remember { selectedDate }
     val pagerState = rememberPagerState(initialPage = ANCHOR_PAGE) { Int.MAX_VALUE }
@@ -117,6 +119,7 @@ fun DailyScreen(calendarViewModel: CalendarViewModel, eventViewModel: EventViewM
                         onTodayClick = { jumpToDate(today) },
                         isFullscreen = isFullscreen,
                         onFullscreenToggle = { calendarViewModel.toggleFullscreen() },
+                        onPrintClick = { showPrintDialog = true },
                         minZoom = MIN_ZOOM,
                         maxZoom = MAX_ZOOM,
                     )
@@ -279,6 +282,30 @@ fun DailyScreen(calendarViewModel: CalendarViewModel, eventViewModel: EventViewM
             onHebrewDateChosen = { year, month, day ->
                 showDateSearch = false
                 calendarViewModel.gregorianForHebrew(year, month, day)?.let { jumpToDate(it) }
+            },
+        )
+    }
+    if (showPrintDialog) {
+        com.yarom.jewishcalendar.ui.components.PrintOptionsDialog(
+            onDismiss = { showPrintDialog = false },
+            onConfirm = { copies ->
+                showPrintDialog = false
+                val dateForPrint = selectedDate
+                coroutineScope.launch {
+                    val daySettings = settings ?: return@launch
+                    val content = com.yarom.jewishcalendar.domain.print.buildDayPrintContent(
+                        calendarViewModel,
+                        context,
+                        dateForPrint,
+                        daySettings,
+                    )
+                    com.yarom.jewishcalendar.domain.print.printCalendarContent(
+                        context,
+                        "לוח יומי",
+                        com.yarom.jewishcalendar.domain.print.PrintContent.Day(content),
+                        copies,
+                    )
+                }
             },
         )
     }

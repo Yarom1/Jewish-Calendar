@@ -227,17 +227,25 @@ object CalendarPrintRenderer {
         canvas.drawRect(accentBar, fillPaint(accentColor))
         canvas.restore()
 
+        // rowTop tracks the top of each row's own vertical slot (not its baseline), so the
+        // cursor advance below always equals that row's full allotted height (fontSize *
+        // multiplier) with no double-counting - the baseline is only ever derived from rowTop
+        // for the drawText call itself, never fed back into the cursor (spec follow-up: the
+        // previous version added a full text-height to reach the baseline *and then* advanced by
+        // the full row height again, silently inflating each row and pushing every card short of
+        // what its content actually needed - the exact cause of lines climbing on top of the
+        // next card).
         val textRight = right - ACCENT_BAR_WIDTH * scale - 6f * scale
-        var y = cardTop + CARD_INSET * scale + HEADER_SIZE * scale
+        var rowTop = cardTop + CARD_INSET * scale
         val headerPaint = textPaint(HEADER_SIZE * scale, bold = true, color = TEAL)
-        canvas.drawText("${day.dateLabel}   ${day.hebrewLabel}", textRight, y, headerPaint)
-        y += headerPaint.textSize * 1.3f
+        canvas.drawText("${day.dateLabel}   ${day.hebrewLabel}", textRight, rowTop + headerPaint.textSize, headerPaint)
+        rowTop += headerPaint.textSize * 1.3f
         day.noteLine?.let {
             val notePaint = textPaint(NOTE_SIZE * scale, bold = true, color = BURGUNDY)
-            canvas.drawText(it, textRight, y, notePaint)
-            y += notePaint.textSize * 1.3f
+            canvas.drawText(it, textRight, rowTop + notePaint.textSize, notePaint)
+            rowTop += notePaint.textSize * 1.3f
         }
-        drawLines(canvas, day.lines, textRight, y, LINE_SIZE * scale)
+        drawLines(canvas, day.lines, textRight, rowTop, LINE_SIZE * scale)
         return cardBottom
     }
 
@@ -253,11 +261,11 @@ object CalendarPrintRenderer {
         canvas.drawRoundRect(cardRect, radius, radius, linePaint(GOLD, 1.2f * scale))
 
         val textRight = right - CARD_INSET * scale
-        var y = cardTop + CARD_INSET * scale + HEADER_SIZE * scale
+        var rowTop = cardTop + CARD_INSET * scale
         val headerPaint = textPaint(HEADER_SIZE * scale, bold = true, color = TEAL)
-        canvas.drawText(title, textRight, y, headerPaint)
-        y += headerPaint.textSize * 1.3f
-        drawLines(canvas, lines, textRight, y, LINE_SIZE * scale)
+        canvas.drawText(title, textRight, rowTop + headerPaint.textSize, headerPaint)
+        rowTop += headerPaint.textSize * 1.3f
+        drawLines(canvas, lines, textRight, rowTop, LINE_SIZE * scale)
         return cardBottom
     }
 
@@ -334,16 +342,17 @@ object CalendarPrintRenderer {
     }
 
     private fun drawLines(canvas: Canvas, lines: List<PrintLine>, right: Float, startY: Float, textSize: Float): Float {
-        var y = startY
+        var rowTop = startY
         val labelPaint = textPaint(textSize, color = INK_MUTED)
         val valuePaint = textPaint(textSize, bold = true, color = TEAL)
         for (line in lines) {
-            canvas.drawText(line.value, right, y, valuePaint)
+            val baseline = rowTop + textSize
+            canvas.drawText(line.value, right, baseline, valuePaint)
             val valueWidth = valuePaint.measureText(line.value)
-            canvas.drawText(line.label, right - valueWidth - 12f, y, labelPaint)
-            y += textSize * 1.35f
+            canvas.drawText(line.label, right - valueWidth - 12f, baseline, labelPaint)
+            rowTop += textSize * 1.35f
         }
-        return y
+        return rowTop
     }
 
     /** Text/line sizes are authored for a full-page rect - shrink proportionally for a tiled

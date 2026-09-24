@@ -174,11 +174,15 @@ fun WeeklyScreen(
                             onEventClick = { editingEvent = it },
                         )
                     }
+
+                    // Scrolls away with the rest of the week now, instead of being pinned below
+                    // the pager (spec follow-up).
+                    settings?.let { daySettings ->
+                        ShabbatBar(calendarViewModel, weekDates, daySettings)
+                        WeekStudyAndZmanimBar(calendarViewModel, weekDates, daySettings)
+                    }
                 }
             }
-
-            val displayedWeekDates = remember(displayedWeekStart) { (0..6).map { displayedWeekStart.plusDays(it.toLong()) } }
-            settings?.let { ShabbatBar(calendarViewModel, displayedWeekDates, it) }
         }
     }
 
@@ -475,7 +479,95 @@ private fun ShabbatBar(
 @Composable
 private fun ShabbatTimeBox(label: String, time: String, accent: androidx.compose.ui.graphics.Color) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(label, fontFamily = FontFamily.Serif, fontWeight = FontWeight.SemiBold, fontSize = 11.sp, color = accent, maxLines = 1)
-        Text(time, fontFamily = FontFamily.Serif, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = accent, maxLines = 1)
+        Text(label, fontFamily = FontFamily.Serif, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = accent, maxLines = 1)
+        // Enlarged to match a printed luach's candle-lighting/havdalah box (spec follow-up).
+        Text(time, fontFamily = FontFamily.Serif, fontWeight = FontWeight.ExtraBold, fontSize = 30.sp, color = accent, maxLines = 1)
+    }
+}
+
+/** Below the Shabbat bar: this week's Daf Yomi range (right) beside a compact zmanim-range
+ * table for the week (left) - like the "לימוד יומי" / zmanim boxes on a printed luach's weekly
+ * page. Only Daf Yomi Bavli/Yerushalmi are shown (this app has no data source for Mishna/Halacha
+ * Yomit or the Rambam/Zohar cycles some luachs also list). */
+@Composable
+private fun WeekStudyAndZmanimBar(
+    calendarViewModel: CalendarViewModel,
+    weekDates: List<LocalDate>,
+    settings: AppSettings,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        WeekZmanimBox(calendarViewModel, weekDates, settings, modifier = Modifier.weight(1f))
+        WeekStudyBox(calendarViewModel, weekDates, modifier = Modifier.weight(1f))
+    }
+}
+
+private val weekBoxZmanim = listOf(
+    ZmanType.ALOS_HASHACHAR,
+    ZmanType.SUNRISE,
+    ZmanType.SOF_ZMAN_SHEMA_GRA,
+    ZmanType.SOF_ZMAN_SHEMA_MGA,
+    ZmanType.SOF_ZMAN_TEFILA,
+    ZmanType.CHATZOS,
+    ZmanType.MINCHA_GEDOLA,
+    ZmanType.MINCHA_KETANA,
+    ZmanType.PLAG_HAMINCHA,
+    ZmanType.SUNSET,
+)
+
+@Composable
+private fun WeekZmanimBox(
+    calendarViewModel: CalendarViewModel,
+    weekDates: List<LocalDate>,
+    settings: AppSettings,
+    modifier: Modifier = Modifier,
+) {
+    val weekTimes = remember(weekDates, settings) {
+        weekDates.map { calendarViewModel.zmanimFor(it, settings.coordinates, settings).times }
+    }
+    Column(modifier = modifier) {
+        Text("זמני השבוע", fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, fontSize = 11.sp, color = DeepTeal)
+        for (type in weekBoxZmanim) {
+            val times = weekTimes.mapNotNull { it[type] }
+            if (times.isEmpty()) continue
+            val earliest = times.min()
+            val latest = times.max()
+            val range = if (earliest == latest) earliest.formatTime() else "${earliest.formatTime()}-${latest.formatTime()}"
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(type.compactLabel(), fontSize = 9.sp, color = DeepTeal.copy(alpha = 0.85f), maxLines = 1, modifier = Modifier.weight(1f))
+                Text(range, fontSize = 9.sp, fontWeight = FontWeight.SemiBold, color = DeepTeal, maxLines = 1)
+            }
+        }
+    }
+}
+
+@Composable
+private fun WeekStudyBox(
+    calendarViewModel: CalendarViewModel,
+    weekDates: List<LocalDate>,
+    modifier: Modifier = Modifier,
+) {
+    val (bavli, yerushalmi) = remember(weekDates) {
+        calendarViewModel.dafYomiWeekRange(weekDates.first(), weekDates.last())
+    }
+    Column(modifier = modifier) {
+        Text("לימוד יומי", fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, fontSize = 11.sp, color = DeepTeal)
+        bavli?.let {
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Text("בבלי: ", fontSize = 9.sp, color = DeepTeal.copy(alpha = 0.85f), maxLines = 1)
+                Text(it, fontSize = 9.sp, fontWeight = FontWeight.SemiBold, color = DeepTeal, maxLines = 1)
+            }
+        }
+        yerushalmi?.let {
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Text("ירושלמי: ", fontSize = 9.sp, color = DeepTeal.copy(alpha = 0.85f), maxLines = 1)
+                Text(it, fontSize = 9.sp, fontWeight = FontWeight.SemiBold, color = DeepTeal, maxLines = 1)
+            }
+        }
     }
 }

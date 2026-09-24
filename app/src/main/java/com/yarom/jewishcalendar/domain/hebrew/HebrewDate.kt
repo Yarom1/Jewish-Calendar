@@ -61,15 +61,7 @@ class HebrewDateConverter(private val useHebrewFormat: Boolean = true) {
     private val tefilaRules = TefilaRules()
 
     fun fromGregorian(date: LocalDate, timeZone: TimeZone = TimeZone.getDefault()): HebrewDate {
-        val calendar = Calendar.getInstance(timeZone).apply {
-            clear()
-            set(date.year, date.monthValue - 1, date.dayOfMonth)
-        }
-        // This app is Israel-only (Hebrew UI, Israeli zmanim/city presets, Israeli week start) -
-        // without this, KosherJava defaults to Diaspora two-day Yom Tov rules, which misclassifies
-        // e.g. 16 Tishrei/22 Nissan as a second Yom Tov day instead of Chol Hamoed (spec follow-up).
-        val jewishCalendar = JewishCalendar(calendar).apply { inIsrael = true }
-        return toHebrewDate(jewishCalendar, date)
+        return toHebrewDate(jewishCalendarFor(date, timeZone), date)
     }
 
     fun hebrewDateToGregorian(hebrewYear: Int, hebrewMonth: Int, hebrewDay: Int): LocalDate {
@@ -81,6 +73,40 @@ class HebrewDateConverter(private val useHebrewFormat: Boolean = true) {
             cal.get(Calendar.MONTH) + 1,
             cal.get(Calendar.DAY_OF_MONTH),
         )
+    }
+
+    /** Compact "week range" Daf Yomi Bavli label (e.g. "ברכות ב'-ח'"), matching the weekly box on
+     * a printed luach - null before the cycle started for [weekEnd] (Yerushalmi's, historically). */
+    fun dafYomiBavliWeekRange(weekStart: LocalDate, weekEnd: LocalDate): String? {
+        val startDaf = runCatching { YomiCalculator.getDafYomiBavli(jewishCalendarFor(weekStart, ISRAEL_TIME_ZONE)) }.getOrNull() ?: return null
+        val endDaf = runCatching { YomiCalculator.getDafYomiBavli(jewishCalendarFor(weekEnd, ISRAEL_TIME_ZONE)) }.getOrNull() ?: return null
+        return if (startDaf.masechtaNumber == endDaf.masechtaNumber) {
+            "${startDaf.masechta} ${formatter.formatHebrewNumber(startDaf.daf)}-${formatter.formatHebrewNumber(endDaf.daf)}"
+        } else {
+            "${formatter.formatDafYomiBavli(startDaf)} - ${formatter.formatDafYomiBavli(endDaf)}"
+        }
+    }
+
+    /** Same as [dafYomiBavliWeekRange] for the Yerushalmi cycle. */
+    fun dafYomiYerushalmiWeekRange(weekStart: LocalDate, weekEnd: LocalDate): String? {
+        val startDaf = YerushalmiYomiCalculator.getDafYomiYerushalmi(jewishCalendarFor(weekStart, ISRAEL_TIME_ZONE)) ?: return null
+        val endDaf = YerushalmiYomiCalculator.getDafYomiYerushalmi(jewishCalendarFor(weekEnd, ISRAEL_TIME_ZONE)) ?: return null
+        return if (startDaf.masechtaNumber == endDaf.masechtaNumber) {
+            "${startDaf.yerushalmiMasechta} ${formatter.formatHebrewNumber(startDaf.daf)}-${formatter.formatHebrewNumber(endDaf.daf)}"
+        } else {
+            "${formatter.formatDafYomiYerushalmi(startDaf)} - ${formatter.formatDafYomiYerushalmi(endDaf)}"
+        }
+    }
+
+    // This app is Israel-only (Hebrew UI, Israeli zmanim/city presets, Israeli week start) -
+    // without inIsrael=true, KosherJava defaults to Diaspora two-day Yom Tov rules, which
+    // misclassifies e.g. 16 Tishrei/22 Nissan as a second Yom Tov day instead of Chol Hamoed.
+    private fun jewishCalendarFor(date: LocalDate, timeZone: TimeZone): JewishCalendar {
+        val calendar = Calendar.getInstance(timeZone).apply {
+            clear()
+            set(date.year, date.monthValue - 1, date.dayOfMonth)
+        }
+        return JewishCalendar(calendar).apply { inIsrael = true }
     }
 
     private fun toHebrewDate(jewishCalendar: JewishCalendar, gregorianDate: LocalDate): HebrewDate {

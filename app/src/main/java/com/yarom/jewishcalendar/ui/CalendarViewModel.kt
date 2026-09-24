@@ -47,6 +47,12 @@ class CalendarViewModel(
 
     fun hebrewDateFor(date: LocalDate): HebrewDate = hebrewDateConverter.fromGregorian(date)
 
+    /** Compact Daf Yomi range for the week [weekStart]..[weekEnd] (spec follow-up: the weekly
+     * view's daily-study box, matching a printed luach's weekly range instead of a single day). */
+    fun dafYomiWeekRange(weekStart: LocalDate, weekEnd: LocalDate): Pair<String?, String?> =
+        hebrewDateConverter.dafYomiBavliWeekRange(weekStart, weekEnd) to
+            hebrewDateConverter.dafYomiYerushalmiWeekRange(weekStart, weekEnd)
+
     /** For the date-search control (spec follow-up): Hebrew date -> Gregorian date. */
     fun gregorianForHebrew(year: Int, month: Int, day: Int): LocalDate? =
         runCatching { hebrewDateConverter.hebrewDateToGregorian(year, month, day) }.getOrNull()

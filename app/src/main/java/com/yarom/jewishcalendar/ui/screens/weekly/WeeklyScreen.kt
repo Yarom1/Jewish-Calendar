@@ -361,7 +361,7 @@ private fun WeekDayRow(
             }
             if (hebrewDate.isMotzaeiShabbosOrYomTov) {
                 ZmanLine(
-                    label = if (hebrewDate.isShabbos) "צאת השבת" else "צאת החג",
+                    label = motzaeiLabel(hebrewDate),
                     time = zmanTimes[ZmanType.TZEIS_HAKOCHAVIM].formatTime(),
                     color = Burgundy,
                     bold = true,
@@ -386,6 +386,14 @@ private fun WeekDayRow(
             }
         }
     }
+}
+
+/** "צאת שבת וחג" when Shabbos and Yom Tov coincide (e.g. the first day of Sukkot falling on
+ * Shabbos) - "צאת השבת"/"צאת החג" otherwise (spec follow-up). */
+private fun motzaeiLabel(hebrewDate: HebrewDate): String = when {
+    hebrewDate.isShabbos && hebrewDate.isYomTov -> "צאת שבת וחג"
+    hebrewDate.isShabbos -> "צאת השבת"
+    else -> "צאת החג"
 }
 
 /** A zman row anchored to one side (left, since it sits beside the time itself), with the
@@ -472,7 +480,7 @@ private fun ShabbatBar(
                 )
             }
         }
-        ShabbatTimeBox("צאת השבת", havdalah.formatTime(), DeepTeal)
+        ShabbatTimeBox(motzaeiLabel(hebrewSaturday), havdalah.formatTime(), DeepTeal)
     }
 }
 

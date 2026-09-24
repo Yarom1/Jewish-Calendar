@@ -18,6 +18,11 @@ data class PrintWeekContent(
     val havdalah: String,
     val parashaLine: String?,
     val haftarahLine: String?,
+    /** Min-max range per zman across the week, matching the on-screen "זמני השבוע" box. */
+    val weekZmanimLines: List<PrintLine>,
+    /** This week's Daf Yomi range, matching the on-screen "לימוד יומי" box. */
+    val dafYomiBavli: String?,
+    val dafYomiYerushalmi: String?,
 )
 
 data class PrintDayContent(

@@ -61,6 +61,20 @@ private fun dayLines(
     )
 }
 
+/** Same set shown in the on-screen "זמני השבוע" box (WeeklyScreen's WeekZmanimBox). */
+private val weekRangeZmanim = listOf(
+    ZmanType.ALOS_HASHACHAR,
+    ZmanType.SUNRISE,
+    ZmanType.SOF_ZMAN_SHEMA_GRA,
+    ZmanType.SOF_ZMAN_SHEMA_MGA,
+    ZmanType.SOF_ZMAN_TEFILA,
+    ZmanType.CHATZOS,
+    ZmanType.MINCHA_GEDOLA,
+    ZmanType.MINCHA_KETANA,
+    ZmanType.PLAG_HAMINCHA,
+    ZmanType.SUNSET,
+)
+
 suspend fun buildWeekPrintContent(
     calendarViewModel: CalendarViewModel,
     context: Context,
@@ -82,6 +96,17 @@ suspend fun buildWeekPrintContent(
     val haftarahLine = hebrewSaturday.haftarahName?.let { "${hebrewSaturday.haftarahHeading ?: "הפטרת השבת"}: $it" }
     val hebrewWeekStart = calendarViewModel.hebrewDateFor(weekStart)
 
+    val allZmanTimes = weekDates.map { calendarViewModel.zmanimFor(it, settings.coordinates, settings).times }
+    val weekZmanimLines = weekRangeZmanim.mapNotNull { type ->
+        val times = allZmanTimes.mapNotNull { it[type] }
+        if (times.isEmpty()) return@mapNotNull null
+        val earliest = times.min()
+        val latest = times.max()
+        val range = if (earliest == latest) earliest.formatTime() else "${earliest.formatTime()}-${latest.formatTime()}"
+        PrintLine(type.compactLabelPlain(context), range)
+    }
+    val (dafBavli, dafYerushalmi) = calendarViewModel.dafYomiWeekRange(weekStart, weekDates.last())
+
     return PrintWeekContent(
         title = "${hebrewWeekStart.hebrewMonthName} ${hebrewWeekStart.hebrewYearLabel}",
         days = days,
@@ -89,6 +114,9 @@ suspend fun buildWeekPrintContent(
         havdalah = havdalah,
         parashaLine = parashaLine,
         haftarahLine = haftarahLine,
+        weekZmanimLines = weekZmanimLines,
+        dafYomiBavli = dafBavli,
+        dafYomiYerushalmi = dafYerushalmi,
     )
 }
 

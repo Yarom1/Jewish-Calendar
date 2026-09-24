@@ -46,50 +46,126 @@ object CalendarPrintRenderer {
     }
 
     private fun renderWeek(canvas: Canvas, rect: RectF, content: PrintWeekContent) {
-        val titlePaint = textPaint(TITLE_SIZE * scaleFor(rect), bold = true)
+        val scale = fitScaleForWeek(rect, content)
         val right = rect.right - PADDING
+        val left = rect.left + PADDING
+
+        val titlePaint = textPaint(TITLE_SIZE * scale, bold = true)
         var y = rect.top + PADDING + titlePaint.textSize
         canvas.drawText(content.title, right, y, titlePaint)
         y += titlePaint.textSize * 0.6f
 
-        val dayHeight = (rect.height() - (y - rect.top) - PADDING * 2) / content.days.size.coerceAtLeast(1)
+        // Each day's block advances the cursor by exactly the height it actually drew (not an
+        // even 1/7 split), so a day with extra lines (candle lighting, more visible zmanim)
+        // never overlaps the next one's header (spec follow-up: this was the "doesn't look good"
+        // overlap bug in the previous version).
         for (day in content.days) {
-            val dayTop = y
-            y = drawDayBlock(canvas, day, right, rect.left + PADDING, y, scaleFor(rect))
-            canvas.drawLine(rect.left + PADDING, dayTop + dayHeight - 2f, rect.right - PADDING, dayTop + dayHeight - 2f, linePaint())
-            y = dayTop + dayHeight
+            y = drawDayBlock(canvas, day, right, left, y, scale)
+            y += 4f * scale
+            canvas.drawLine(left, y - 2f * scale, right, y - 2f * scale, linePaint())
         }
 
-        val notePaint = textPaint(NOTE_SIZE * scaleFor(rect))
-        val boldNotePaint = textPaint(NOTE_SIZE * scaleFor(rect), bold = true)
-        var bottomY = rect.bottom - PADDING
-        canvas.drawText("צאת השבת: ${content.havdalah}   |   הדלקת נרות: ${content.candleLighting}", right, bottomY, boldNotePaint)
-        content.haftarahLine?.let {
-            bottomY -= notePaint.textSize * 1.4f
-            canvas.drawText(it, right, bottomY, notePaint)
+        if (content.weekZmanimLines.isNotEmpty()) {
+            y += 4f * scale
+            val headerPaint = textPaint(HEADER_SIZE * scale, bold = true)
+            canvas.drawText("זמני השבוע", right, y, headerPaint)
+            y += headerPaint.textSize * 1.3f
+            y = drawLines(canvas, content.weekZmanimLines, right, y, LINE_SIZE * scale)
         }
+
+        val studyLines = listOfNotNull(
+            content.dafYomiBavli?.let { PrintLine("בבלי", it) },
+            content.dafYomiYerushalmi?.let { PrintLine("ירושלמי", it) },
+        )
+        if (studyLines.isNotEmpty()) {
+            y += 4f * scale
+            val headerPaint = textPaint(HEADER_SIZE * scale, bold = true)
+            canvas.drawText("לימוד יומי", right, y, headerPaint)
+            y += headerPaint.textSize * 1.3f
+            y = drawLines(canvas, studyLines, right, y, LINE_SIZE * scale)
+        }
+
+        y += 6f * scale
+        val notePaint = textPaint(NOTE_SIZE * scale)
+        val boldNotePaint = textPaint(NOTE_SIZE * scale, bold = true)
         content.parashaLine?.let {
-            bottomY -= notePaint.textSize * 1.4f
-            canvas.drawText(it, right, bottomY, boldNotePaint)
+            canvas.drawText(it, right, y, boldNotePaint)
+            y += notePaint.textSize * 1.4f
         }
+        content.haftarahLine?.let {
+            canvas.drawText(it, right, y, notePaint)
+            y += notePaint.textSize * 1.4f
+        }
+        canvas.drawText("צאת השבת: ${content.havdalah}   |   הדלקת נרות: ${content.candleLighting}", right, y, boldNotePaint)
     }
 
     private fun renderDay(canvas: Canvas, rect: RectF, content: PrintDayContent) {
-        val titlePaint = textPaint(TITLE_SIZE * scaleFor(rect), bold = true)
+        val scale = fitScaleForDay(rect, content)
         val right = rect.right - PADDING
+
+        val titlePaint = textPaint(TITLE_SIZE * scale, bold = true)
         var y = rect.top + PADDING + titlePaint.textSize
         canvas.drawText(content.title, right, y, titlePaint)
         y += titlePaint.textSize * 0.8f
 
-        y = drawDayBlock(canvas, content.day, right, rect.left + PADDING, y, scaleFor(rect))
+        y = drawDayBlock(canvas, content.day, right, rect.left + PADDING, y, scale)
 
         if (content.studyLines.isNotEmpty()) {
-            y += LINE_SIZE * scaleFor(rect)
-            val headerPaint = textPaint(HEADER_SIZE * scaleFor(rect), bold = true)
+            y += LINE_SIZE * scale
+            val headerPaint = textPaint(HEADER_SIZE * scale, bold = true)
             canvas.drawText("לימוד יומי", right, y, headerPaint)
             y += headerPaint.textSize * 1.3f
-            y = drawLines(canvas, content.studyLines, right, y, LINE_SIZE * scaleFor(rect))
+            y = drawLines(canvas, content.studyLines, right, y, LINE_SIZE * scale)
         }
+    }
+
+    /** Total height [content] needs to draw at scale=1 - every term below is directly
+     * proportional to scale, so [fitScaleForWeek] can solve for the exact fitting scale in one
+     * division rather than measuring iteratively. */
+    private fun estimateWeekUnitHeight(content: PrintWeekContent): Float {
+        var total = TITLE_SIZE * 1.6f
+        for (day in content.days) {
+            total += HEADER_SIZE * 1.3f
+            if (day.noteLine != null) total += NOTE_SIZE * 1.3f
+            total += day.lines.size * LINE_SIZE * 1.35f
+            total += 6f
+        }
+        if (content.weekZmanimLines.isNotEmpty()) {
+            total += HEADER_SIZE * 1.3f + content.weekZmanimLines.size * LINE_SIZE * 1.35f + 4f
+        }
+        val studyCount = (if (content.dafYomiBavli != null) 1 else 0) + (if (content.dafYomiYerushalmi != null) 1 else 0)
+        if (studyCount > 0) {
+            total += HEADER_SIZE * 1.3f + studyCount * LINE_SIZE * 1.35f + 4f
+        }
+        val summaryLines = 1 + (if (content.parashaLine != null) 1 else 0) + (if (content.haftarahLine != null) 1 else 0)
+        total += summaryLines * NOTE_SIZE * 1.4f + 6f
+        return total
+    }
+
+    private fun fitScaleForWeek(rect: RectF, content: PrintWeekContent): Float {
+        val available = rect.height() - PADDING * 2
+        val unitHeight = estimateWeekUnitHeight(content)
+        val maxScale = scaleFor(rect)
+        if (unitHeight <= 0f) return maxScale
+        return (available / unitHeight).coerceIn(0.25f, maxScale)
+    }
+
+    private fun estimateDayUnitHeight(content: PrintDayContent): Float {
+        var total = TITLE_SIZE * 1.8f + HEADER_SIZE * 1.3f
+        if (content.day.noteLine != null) total += NOTE_SIZE * 1.3f
+        total += content.day.lines.size * LINE_SIZE * 1.35f
+        if (content.studyLines.isNotEmpty()) {
+            total += LINE_SIZE + HEADER_SIZE * 1.3f + content.studyLines.size * LINE_SIZE * 1.35f
+        }
+        return total
+    }
+
+    private fun fitScaleForDay(rect: RectF, content: PrintDayContent): Float {
+        val available = rect.height() - PADDING * 2
+        val unitHeight = estimateDayUnitHeight(content)
+        val maxScale = scaleFor(rect)
+        if (unitHeight <= 0f) return maxScale
+        return (available / unitHeight).coerceIn(0.25f, maxScale)
     }
 
     private fun renderMonth(canvas: Canvas, rect: RectF, content: PrintMonthContent) {

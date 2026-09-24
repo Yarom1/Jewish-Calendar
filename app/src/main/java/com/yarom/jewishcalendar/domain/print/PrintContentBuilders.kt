@@ -57,6 +57,8 @@ private fun dayLines(
         dateLabel = date.format(DateTimeFormatter.ofPattern("EEEE d/M", Locale("he"))),
         hebrewLabel = "${hebrewDate.hebrewDayOfMonthLabel} ${hebrewDate.hebrewMonthName}",
         noteLine = noteLine,
+        isSpecial = hebrewDate.isShabbos || hebrewDate.isYomTov,
+        isToday = date == LocalDate.now(),
         lines = lines,
     )
 }
@@ -159,6 +161,7 @@ fun buildMonthPrintContent(
             inMonth = YearMonth.from(date) == month,
             isToday = date == today,
             hasEvents = hasEventsOn(date),
+            isSpecial = hebrewDate.isShabbos || hebrewDate.isYomTov,
         )
     }
     return PrintMonthContent(

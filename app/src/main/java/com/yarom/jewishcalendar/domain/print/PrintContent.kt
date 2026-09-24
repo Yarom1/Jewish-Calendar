@@ -9,6 +9,9 @@ data class PrintDayBlock(
     val hebrewLabel: String,
     val noteLine: String?,
     val lines: List<PrintLine>,
+    /** Shabbos or Yom Tov - drives the burgundy vs. brass-gold day-tag accent, matching DayCell. */
+    val isSpecial: Boolean = false,
+    val isToday: Boolean = false,
 )
 
 data class PrintWeekContent(
@@ -37,6 +40,7 @@ data class PrintMonthCell(
     val inMonth: Boolean,
     val isToday: Boolean,
     val hasEvents: Boolean,
+    val isSpecial: Boolean = false,
 )
 
 data class PrintMonthContent(

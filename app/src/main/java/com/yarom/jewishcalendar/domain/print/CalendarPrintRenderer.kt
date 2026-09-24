@@ -1,7 +1,6 @@
 package com.yarom.jewishcalendar.domain.print
 
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.Typeface
@@ -11,6 +10,11 @@ import android.graphics.Typeface
  * a [Canvas] - plain android.graphics drawing, not a Compose snapshot, so it's reliable to render
  * off the UI thread from a PrintDocumentAdapter and to tile N copies per physical sheet.
  *
+ * Colors and typeface mirror the app's own "classic printed wall-calendar" theme
+ * (ui/theme/Theme.kt's light scheme: parchment page, deep teal ink, burgundy/brass-gold accents
+ * for Shabbat/Yom Tov, serif type) so the printed page looks like the calendar itself rather than
+ * a bare data table (spec follow-up: the previous plain-black-Paint table read as "empty").
+ *
  * Text is right-aligned at the row's own right edge, which is enough to read correctly for
  * Hebrew (the platform's own bidi/shaping already renders the glyphs correctly - only the block
  * alignment needs to be handled here, since this is a simple label/value table, not mixed prose).
@@ -18,26 +22,54 @@ import android.graphics.Typeface
 object CalendarPrintRenderer {
 
     private const val PADDING = 10f
-    private const val TITLE_SIZE = 16f
+    private const val TITLE_SIZE = 17f
     private const val HEADER_SIZE = 12f
     private const val NOTE_SIZE = 9f
-    private const val LINE_SIZE = 8f
+    private const val LINE_SIZE = 8.5f
+    private const val CARD_INSET = 6f
+    private const val CARD_RADIUS = 6f
+    private const val ACCENT_BAR_WIDTH = 5f
 
-    private fun textPaint(size: Float, bold: Boolean = false, color: Int = Color.BLACK) = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    // Same literals as the light color scheme in ui/theme/Theme.kt - a printed page is always
+    // read against paper, so this mirrors the light ("classic parchment") variant regardless of
+    // the device's own theme setting.
+    private const val PARCHMENT = 0xFFFBF3E1.toInt()
+    private const val SURFACE = 0xFFFFFCF5.toInt()
+    private const val INK = 0xFF2B2015.toInt()
+    private const val INK_MUTED = 0xFF6B5C46.toInt()
+    private const val TEAL = 0xFF184A47.toInt()
+    private const val GOLD = 0xFFC9A227.toInt()
+    private const val BURGUNDY = 0xFF7A1F2B.toInt()
+    private const val OUTLINE = 0xFFB59A5C.toInt()
+    private const val EVENT_INDIGO = 0xFF33448F.toInt()
+
+    private val serifRegular = Typeface.create(Typeface.SERIF, Typeface.NORMAL)
+    private val serifBold = Typeface.create(Typeface.SERIF, Typeface.BOLD)
+
+    private fun textPaint(size: Float, bold: Boolean = false, color: Int = INK) = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         textSize = size
-        typeface = if (bold) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+        typeface = if (bold) serifBold else serifRegular
         this.color = color
         textAlign = Paint.Align.RIGHT
     }
 
-    private fun linePaint(color: Int = Color.LTGRAY, width: Float = 1f) = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    private fun centerTextPaint(size: Float, bold: Boolean = false, color: Int = INK) =
+        textPaint(size, bold, color).apply { textAlign = Paint.Align.CENTER }
+
+    private fun linePaint(color: Int = OUTLINE, width: Float = 1f) = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         this.color = color
         strokeWidth = width
         style = Paint.Style.STROKE
     }
 
+    private fun fillPaint(color: Int) = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        this.color = color
+        style = Paint.Style.FILL
+    }
+
     fun render(canvas: Canvas, rect: RectF, content: PrintContent) {
-        canvas.drawRect(rect, linePaint(Color.DKGRAY, 1.5f))
+        canvas.drawRect(rect, fillPaint(PARCHMENT))
+        canvas.drawRect(rect, linePaint(OUTLINE, 1.5f))
         when (content) {
             is PrintContent.Week -> renderWeek(canvas, rect, content.content)
             is PrintContent.Day -> renderDay(canvas, rect, content.content)
@@ -50,27 +82,25 @@ object CalendarPrintRenderer {
         val right = rect.right - PADDING
         val left = rect.left + PADDING
 
-        val titlePaint = textPaint(TITLE_SIZE * scale, bold = true)
+        val titlePaint = textPaint(TITLE_SIZE * scale, bold = true, color = TEAL)
         var y = rect.top + PADDING + titlePaint.textSize
         canvas.drawText(content.title, right, y, titlePaint)
-        y += titlePaint.textSize * 0.6f
+        y += titlePaint.textSize * 0.35f
+        canvas.drawLine(left, y, right, y, linePaint(GOLD, 1.5f * scale))
+        y += 8f * scale
 
         // Each day's block advances the cursor by exactly the height it actually drew (not an
         // even 1/7 split), so a day with extra lines (candle lighting, more visible zmanim)
         // never overlaps the next one's header (spec follow-up: this was the "doesn't look good"
         // overlap bug in the previous version).
         for (day in content.days) {
-            y = drawDayBlock(canvas, day, right, left, y, scale)
-            y += 4f * scale
-            canvas.drawLine(left, y - 2f * scale, right, y - 2f * scale, linePaint())
+            y = drawDayCard(canvas, day, right, left, y, scale)
+            y += 6f * scale
         }
 
         if (content.weekZmanimLines.isNotEmpty()) {
-            y += 4f * scale
-            val headerPaint = textPaint(HEADER_SIZE * scale, bold = true)
-            canvas.drawText("זמני השבוע", right, y, headerPaint)
-            y += headerPaint.textSize * 1.3f
-            y = drawLines(canvas, content.weekZmanimLines, right, y, LINE_SIZE * scale)
+            y = drawSectionCard(canvas, "זמני השבוע", content.weekZmanimLines, right, left, y, scale)
+            y += 6f * scale
         }
 
         val studyLines = listOfNotNull(
@@ -78,16 +108,12 @@ object CalendarPrintRenderer {
             content.dafYomiYerushalmi?.let { PrintLine("ירושלמי", it) },
         )
         if (studyLines.isNotEmpty()) {
-            y += 4f * scale
-            val headerPaint = textPaint(HEADER_SIZE * scale, bold = true)
-            canvas.drawText("לימוד יומי", right, y, headerPaint)
-            y += headerPaint.textSize * 1.3f
-            y = drawLines(canvas, studyLines, right, y, LINE_SIZE * scale)
+            y = drawSectionCard(canvas, "לימוד יומי", studyLines, right, left, y, scale)
+            y += 6f * scale
         }
 
-        y += 6f * scale
-        val notePaint = textPaint(NOTE_SIZE * scale)
-        val boldNotePaint = textPaint(NOTE_SIZE * scale, bold = true)
+        val notePaint = textPaint(NOTE_SIZE * scale, color = INK)
+        val boldNotePaint = textPaint(NOTE_SIZE * scale, bold = true, color = BURGUNDY)
         content.parashaLine?.let {
             canvas.drawText(it, right, y, boldNotePaint)
             y += notePaint.textSize * 1.4f
@@ -96,26 +122,27 @@ object CalendarPrintRenderer {
             canvas.drawText(it, right, y, notePaint)
             y += notePaint.textSize * 1.4f
         }
-        canvas.drawText("צאת השבת: ${content.havdalah}   |   הדלקת נרות: ${content.candleLighting}", right, y, boldNotePaint)
+        y += 3f * scale
+        drawSummaryBand(canvas, "צאת השבת: ${content.havdalah}   |   הדלקת נרות: ${content.candleLighting}", right, left, y, scale)
     }
 
     private fun renderDay(canvas: Canvas, rect: RectF, content: PrintDayContent) {
         val scale = fitScaleForDay(rect, content)
         val right = rect.right - PADDING
+        val left = rect.left + PADDING
 
-        val titlePaint = textPaint(TITLE_SIZE * scale, bold = true)
+        val titlePaint = textPaint(TITLE_SIZE * scale, bold = true, color = TEAL)
         var y = rect.top + PADDING + titlePaint.textSize
         canvas.drawText(content.title, right, y, titlePaint)
-        y += titlePaint.textSize * 0.8f
+        y += titlePaint.textSize * 0.35f
+        canvas.drawLine(left, y, right, y, linePaint(GOLD, 1.5f * scale))
+        y += 8f * scale
 
-        y = drawDayBlock(canvas, content.day, right, rect.left + PADDING, y, scale)
+        y = drawDayCard(canvas, content.day, right, left, y, scale)
 
         if (content.studyLines.isNotEmpty()) {
-            y += LINE_SIZE * scale
-            val headerPaint = textPaint(HEADER_SIZE * scale, bold = true)
-            canvas.drawText("לימוד יומי", right, y, headerPaint)
-            y += headerPaint.textSize * 1.3f
-            y = drawLines(canvas, content.studyLines, right, y, LINE_SIZE * scale)
+            y += 6f * scale
+            drawSectionCard(canvas, "לימוד יומי", content.studyLines, right, left, y, scale)
         }
     }
 
@@ -123,22 +150,19 @@ object CalendarPrintRenderer {
      * proportional to scale, so [fitScaleForWeek] can solve for the exact fitting scale in one
      * division rather than measuring iteratively. */
     private fun estimateWeekUnitHeight(content: PrintWeekContent): Float {
-        var total = TITLE_SIZE * 1.6f
+        var total = TITLE_SIZE * 1.35f + 8f
         for (day in content.days) {
-            total += HEADER_SIZE * 1.3f
-            if (day.noteLine != null) total += NOTE_SIZE * 1.3f
-            total += day.lines.size * LINE_SIZE * 1.35f
-            total += 6f
+            total += dayCardHeight(day) + 6f
         }
         if (content.weekZmanimLines.isNotEmpty()) {
-            total += HEADER_SIZE * 1.3f + content.weekZmanimLines.size * LINE_SIZE * 1.35f + 4f
+            total += sectionCardHeight(content.weekZmanimLines.size) + 6f
         }
         val studyCount = (if (content.dafYomiBavli != null) 1 else 0) + (if (content.dafYomiYerushalmi != null) 1 else 0)
         if (studyCount > 0) {
-            total += HEADER_SIZE * 1.3f + studyCount * LINE_SIZE * 1.35f + 4f
+            total += sectionCardHeight(studyCount) + 6f
         }
-        val summaryLines = 1 + (if (content.parashaLine != null) 1 else 0) + (if (content.haftarahLine != null) 1 else 0)
-        total += summaryLines * NOTE_SIZE * 1.4f + 6f
+        val summaryLines = (if (content.parashaLine != null) 1 else 0) + (if (content.haftarahLine != null) 1 else 0)
+        total += summaryLines * NOTE_SIZE * 1.4f + 3f + summaryBandHeight()
         return total
     }
 
@@ -151,11 +175,9 @@ object CalendarPrintRenderer {
     }
 
     private fun estimateDayUnitHeight(content: PrintDayContent): Float {
-        var total = TITLE_SIZE * 1.8f + HEADER_SIZE * 1.3f
-        if (content.day.noteLine != null) total += NOTE_SIZE * 1.3f
-        total += content.day.lines.size * LINE_SIZE * 1.35f
+        var total = TITLE_SIZE * 1.35f + 8f + dayCardHeight(content.day)
         if (content.studyLines.isNotEmpty()) {
-            total += LINE_SIZE + HEADER_SIZE * 1.3f + content.studyLines.size * LINE_SIZE * 1.35f
+            total += 6f + sectionCardHeight(content.studyLines.size)
         }
         return total
     }
@@ -168,68 +190,153 @@ object CalendarPrintRenderer {
         return (available / unitHeight).coerceIn(0.25f, maxScale)
     }
 
+    /** Card height at scale=1 (mirrors [drawDayCard]'s own layout math exactly). */
+    private fun dayCardHeight(day: PrintDayBlock): Float {
+        var total = CARD_INSET * 2 + HEADER_SIZE * 1.3f
+        if (day.noteLine != null) total += NOTE_SIZE * 1.3f
+        total += day.lines.size * LINE_SIZE * 1.35f
+        return total
+    }
+
+    private fun sectionCardHeight(lineCount: Int): Float =
+        CARD_INSET * 2 + HEADER_SIZE * 1.3f + lineCount * LINE_SIZE * 1.35f
+
+    private fun summaryBandHeight(): Float = NOTE_SIZE * 1.35f + CARD_INSET * 2
+
+    /**
+     * Draws one day as a rounded "card" - surface fill, thin outline (or a thicker teal outline
+     * on today), and a burgundy/brass-gold vertical accent bar on the trailing edge echoing the
+     * colored weekday tag strip on DayCell in the on-screen calendar grid.
+     */
+    private fun drawDayCard(canvas: Canvas, day: PrintDayBlock, right: Float, left: Float, startY: Float, scale: Float): Float {
+        val cardTop = startY
+        val cardHeight = dayCardHeight(day) * scale
+        val cardBottom = cardTop + cardHeight
+        val cardRect = RectF(left, cardTop, right, cardBottom)
+        val radius = CARD_RADIUS * scale
+
+        canvas.drawRoundRect(cardRect, radius, radius, fillPaint(SURFACE))
+        canvas.drawRoundRect(cardRect, radius, radius, linePaint(if (day.isToday) TEAL else OUTLINE, if (day.isToday) 2f * scale else 1f * scale))
+
+        // Plain rect, clipped to the card's rounded bounds, so only its outer corners are cut off
+        // by the card's own rounding - simpler and safer than nesting a second rounded shape.
+        val accentColor = if (day.isSpecial) BURGUNDY else GOLD
+        val accentBar = RectF(right - ACCENT_BAR_WIDTH * scale, cardTop, right, cardBottom)
+        canvas.save()
+        canvas.clipPath(android.graphics.Path().apply { addRoundRect(cardRect, radius, radius, android.graphics.Path.Direction.CW) })
+        canvas.drawRect(accentBar, fillPaint(accentColor))
+        canvas.restore()
+
+        val textRight = right - ACCENT_BAR_WIDTH * scale - 6f * scale
+        var y = cardTop + CARD_INSET * scale + HEADER_SIZE * scale
+        val headerPaint = textPaint(HEADER_SIZE * scale, bold = true, color = TEAL)
+        canvas.drawText("${day.dateLabel}   ${day.hebrewLabel}", textRight, y, headerPaint)
+        y += headerPaint.textSize * 1.3f
+        day.noteLine?.let {
+            val notePaint = textPaint(NOTE_SIZE * scale, bold = true, color = BURGUNDY)
+            canvas.drawText(it, textRight, y, notePaint)
+            y += notePaint.textSize * 1.3f
+        }
+        drawLines(canvas, day.lines, textRight, y, LINE_SIZE * scale)
+        return cardBottom
+    }
+
+    /** A labeled card for "זמני השבוע"/"לימוד יומי", styled like the on-screen WeekZmanimBox/WeekStudyBox. */
+    private fun drawSectionCard(canvas: Canvas, title: String, lines: List<PrintLine>, right: Float, left: Float, startY: Float, scale: Float): Float {
+        val cardTop = startY
+        val cardHeight = sectionCardHeight(lines.size) * scale
+        val cardBottom = cardTop + cardHeight
+        val cardRect = RectF(left, cardTop, right, cardBottom)
+        val radius = CARD_RADIUS * scale
+
+        canvas.drawRoundRect(cardRect, radius, radius, fillPaint(SURFACE))
+        canvas.drawRoundRect(cardRect, radius, radius, linePaint(GOLD, 1.2f * scale))
+
+        val textRight = right - CARD_INSET * scale
+        var y = cardTop + CARD_INSET * scale + HEADER_SIZE * scale
+        val headerPaint = textPaint(HEADER_SIZE * scale, bold = true, color = TEAL)
+        canvas.drawText(title, textRight, y, headerPaint)
+        y += headerPaint.textSize * 1.3f
+        drawLines(canvas, lines, textRight, y, LINE_SIZE * scale)
+        return cardBottom
+    }
+
+    /** The candle-lighting/havdalah summary as a filled burgundy band with parchment text,
+     * echoing ShabbatTimeBox's colored strip on the weekly screen. */
+    private fun drawSummaryBand(canvas: Canvas, text: String, right: Float, left: Float, startY: Float, scale: Float) {
+        val bandTop = startY
+        val bandHeight = summaryBandHeight() * scale
+        val bandRect = RectF(left, bandTop, right, bandTop + bandHeight)
+        val radius = CARD_RADIUS * scale
+        canvas.drawRoundRect(bandRect, radius, radius, fillPaint(BURGUNDY))
+        val paint = centerTextPaint(NOTE_SIZE * 1.15f * scale, bold = true, color = PARCHMENT)
+        canvas.drawText(text, (left + right) / 2f, bandTop + bandHeight / 2f + paint.textSize * 0.35f, paint)
+    }
+
     private fun renderMonth(canvas: Canvas, rect: RectF, content: PrintMonthContent) {
         val scale = scaleFor(rect)
-        val titlePaint = textPaint(TITLE_SIZE * scale, bold = true)
+        val titlePaint = textPaint(TITLE_SIZE * scale, bold = true, color = TEAL)
         val right = rect.right - PADDING
+        val left = rect.left + PADDING
         var y = rect.top + PADDING + titlePaint.textSize
         canvas.drawText(content.title, right, y, titlePaint)
-        y += titlePaint.textSize * 0.6f
+        y += titlePaint.textSize * 0.35f
+        canvas.drawLine(left, y, right, y, linePaint(GOLD, 1.5f * scale))
+        y += 6f * scale
 
         val gridTop = y
         val gridHeight = rect.bottom - PADDING - gridTop
         val rows = (content.cells.size / 7).coerceAtLeast(1)
         val colWidth = (rect.width() - PADDING * 2) / 7f
-        val rowHeight = gridHeight / (rows + 1) // +1 for the weekday-label header row
+        val headerRowHeight = HEADER_SIZE * scale * 2f
+        val rowHeight = (gridHeight - headerRowHeight) / rows
 
-        val headerPaint = textPaint(HEADER_SIZE * scale, bold = true)
+        // Weekday header row: a colored tag band per column (burgundy for Shabbat, brass-gold
+        // for the rest) with parchment text, echoing DayCell's own colored weekday tag strip.
         for ((index, label) in content.weekdayLabels.withIndex()) {
             val colRight = rect.right - PADDING - index * colWidth
-            canvas.drawText(label, colRight - colWidth / 2f + headerPaint.textSize / 2f, gridTop + rowHeight * 0.7f, headerPaint)
+            val isShabbosCol = index == content.weekdayLabels.lastIndex
+            val bandRect = RectF(colRight - colWidth, gridTop, colRight, gridTop + headerRowHeight)
+            canvas.drawRect(bandRect, fillPaint(if (isShabbosCol) BURGUNDY else GOLD))
+            val headerPaint = centerTextPaint(HEADER_SIZE * scale, bold = true, color = PARCHMENT)
+            canvas.drawText(label, colRight - colWidth / 2f, gridTop + headerRowHeight / 2f + headerPaint.textSize * 0.35f, headerPaint)
         }
 
         val dayNumPaint = textPaint(HEADER_SIZE * scale)
-        val hebrewDayPaint = textPaint(NOTE_SIZE * scale, color = Color.DKGRAY)
         for ((cellIndex, cell) in content.cells.withIndex()) {
             val row = cellIndex / 7
             val col = cellIndex % 7
             val cellRight = rect.right - PADDING - col * colWidth
-            val cellTop = gridTop + rowHeight * (row + 1)
-            canvas.drawRect(cellRight - colWidth, cellTop, cellRight, cellTop + rowHeight, linePaint())
-            val alpha = if (cell.inMonth) 255 else 120
-            dayNumPaint.alpha = alpha
-            hebrewDayPaint.alpha = alpha
+            val cellTop = gridTop + headerRowHeight + rowHeight * row
+            val cellRect = RectF(cellRight - colWidth + 1f, cellTop + 1f, cellRight - 1f, cellTop + rowHeight - 1f)
+
+            canvas.drawRect(cellRect, fillPaint(if (cell.inMonth) SURFACE else PARCHMENT))
+            canvas.drawRect(cellRect, linePaint(OUTLINE, 0.75f))
+
+            val cellAlpha = if (cell.inMonth) 255 else 110
+            val numberColor = if (cell.isSpecial) BURGUNDY else INK
+            dayNumPaint.color = numberColor
+            dayNumPaint.alpha = cellAlpha
+            dayNumPaint.textAlign = Paint.Align.CENTER
+            val hebrewDayPaint = centerTextPaint(NOTE_SIZE * scale, color = if (cell.isSpecial) BURGUNDY else GOLD)
+            hebrewDayPaint.alpha = cellAlpha
             val centerX = cellRight - colWidth / 2f
-            canvas.drawText(cell.dayNumber, centerX + dayNumPaint.textSize / 2f, cellTop + rowHeight * 0.45f, dayNumPaint)
-            canvas.drawText(cell.hebrewDay, centerX + hebrewDayPaint.textSize / 2f, cellTop + rowHeight * 0.75f, hebrewDayPaint)
+            canvas.drawText(cell.dayNumber, centerX, cellTop + rowHeight * 0.42f, dayNumPaint)
+            canvas.drawText(cell.hebrewDay, centerX, cellTop + rowHeight * 0.72f, hebrewDayPaint)
+
             if (cell.hasEvents) {
-                canvas.drawCircle(cellRight - 6f, cellTop + 6f, 2.5f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.RED })
+                canvas.drawCircle(cellRight - colWidth + 8f * scale, cellTop + 8f * scale, 2.5f * scale, fillPaint(EVENT_INDIGO))
             }
             if (cell.isToday) {
-                canvas.drawRect(cellRight - colWidth + 1f, cellTop + 1f, cellRight - 1f, cellTop + rowHeight - 1f, linePaint(Color.BLUE, 2f))
+                canvas.drawRect(cellRect, linePaint(TEAL, 2f * scale))
             }
         }
-    }
-
-    /** Draws [day]'s date/note header plus its lines, returning the Y position just below it. */
-    private fun drawDayBlock(canvas: Canvas, day: PrintDayBlock, right: Float, left: Float, startY: Float, scale: Float): Float {
-        var y = startY
-        val headerPaint = textPaint(HEADER_SIZE * scale, bold = true)
-        canvas.drawText("${day.dateLabel}   ${day.hebrewLabel}", right, y, headerPaint)
-        y += headerPaint.textSize * 1.3f
-        day.noteLine?.let {
-            val notePaint = textPaint(NOTE_SIZE * scale, color = Color.RED)
-            canvas.drawText(it, right, y, notePaint)
-            y += notePaint.textSize * 1.3f
-        }
-        y = drawLines(canvas, day.lines, right, y, LINE_SIZE * scale)
-        return y
     }
 
     private fun drawLines(canvas: Canvas, lines: List<PrintLine>, right: Float, startY: Float, textSize: Float): Float {
         var y = startY
-        val labelPaint = textPaint(textSize)
-        val valuePaint = textPaint(textSize, bold = true)
+        val labelPaint = textPaint(textSize, color = INK_MUTED)
+        val valuePaint = textPaint(textSize, bold = true, color = TEAL)
         for (line in lines) {
             canvas.drawText(line.value, right, y, valuePaint)
             val valueWidth = valuePaint.measureText(line.value)

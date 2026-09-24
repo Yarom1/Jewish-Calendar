@@ -317,7 +317,7 @@ private fun WeekDayRow(
             // Parasha is shown once at the bottom of the week, not per day (spec follow-up).
             val noteLine = listOfNotNull(
                 hebrewDate.holidayName,
-                "לא תחנון".takeIf { hebrewDate.noTachanun },
+                "ל\"א תחנון".takeIf { hebrewDate.noTachanun },
             ).joinToString(" · ").ifBlank { null }
             if (!noteLine.isNullOrBlank()) {
                 Text(

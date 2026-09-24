@@ -170,7 +170,7 @@ fun DailyScreen(calendarViewModel: CalendarViewModel, eventViewModel: EventViewM
 
                         val summary = listOfNotNull(
                             hebrewDate.holidayName,
-                            "לא תחנון".takeIf { hebrewDate.noTachanun },
+                            "ל\"א תחנון".takeIf { hebrewDate.noTachanun },
                             hebrewDate.parashaName,
                         ).joinToString("  ·  ")
                         if (summary.isNotBlank()) {

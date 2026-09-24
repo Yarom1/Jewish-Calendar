@@ -34,7 +34,7 @@ data class HebrewDate(
     val isMotzaeiShabbosOrYomTov: Boolean,
     val holidayName: String?,
     /** True on an ordinary (non-Shabbos, non-Yom Tov) day when Tachanun is skipped - e.g. erev
-     * Rosh Hashana/Yom Kippur/Sukkot, Rosh Chodesh, Isru Chag - like the "לא תחנון" note on a
+     * Rosh Hashana/Yom Kippur/Sukkot, Rosh Chodesh, Isru Chag - like the "ל"א תחנון" note on a
      * printed luach. Shabbos/Yom Tov never say Tachanun either, but don't need the note. */
     val noTachanun: Boolean,
     val parashaName: String?,

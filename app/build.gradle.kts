@@ -101,4 +101,6 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.retrofit.core)
     implementation(libs.retrofit.kotlinx.serialization)
+
+    implementation(libs.androidx.exifinterface)
 }

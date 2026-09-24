@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -31,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -335,15 +337,22 @@ private fun WeekDayRow(
                 )
             }
             for (occurrence in events) {
-                Text(
-                    text = "• ${occurrence.event.title}",
-                    color = EventColor,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = fontSizeSp.sp,
-                    lineHeight = lineHeightSp.sp,
-                    maxLines = 1,
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.clickable { onEventClick(occurrence.event) },
-                )
+                ) {
+                    occurrence.event.imagePath?.let { path ->
+                        EventThumbnail(path = path, size = (fontSizeSp * 1.4f).dp)
+                    }
+                    Text(
+                        text = "• ${occurrence.event.title}",
+                        color = EventColor,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = fontSizeSp.sp,
+                        lineHeight = lineHeightSp.sp,
+                        maxLines = 1,
+                    )
+                }
             }
             // Candle lighting / havdalah are ritual entry/exit times for the day, not plain
             // zmanim - shown as their own highlighted lines whenever they apply (every erev
@@ -394,6 +403,23 @@ private fun motzaeiLabel(hebrewDate: HebrewDate): String = when {
     hebrewDate.isShabbos && hebrewDate.isYomTov -> "צאת שבת וחג"
     hebrewDate.isShabbos -> "צאת השבת"
     else -> "צאת החג"
+}
+
+/** Small thumbnail of an event's attached photo, shown before its title (spec follow-up). */
+@Composable
+private fun EventThumbnail(path: String, size: Dp) {
+    val bitmap = remember(path) { android.graphics.BitmapFactory.decodeFile(path)?.asImageBitmap() }
+    bitmap?.let {
+        androidx.compose.foundation.Image(
+            bitmap = it,
+            contentDescription = null,
+            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+            modifier = Modifier
+                .padding(end = 3.dp)
+                .size(size)
+                .clip(RoundedCornerShape(3.dp)),
+        )
+    }
 }
 
 /** A zman row anchored to one side (left, since it sits beside the time itself), with the

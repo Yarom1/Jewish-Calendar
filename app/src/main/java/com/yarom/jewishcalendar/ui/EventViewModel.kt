@@ -8,6 +8,7 @@ import com.yarom.jewishcalendar.data.local.entity.RecurrenceEnd
 import com.yarom.jewishcalendar.data.local.entity.RecurrenceType
 import com.yarom.jewishcalendar.data.repository.EventRepository
 import com.yarom.jewishcalendar.domain.hebrew.HebrewDateConverter
+import com.yarom.jewishcalendar.domain.media.EventImageStore
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -30,6 +31,7 @@ data class NewEventDraft(
     val recurrenceEndDate: LocalDate? = null,
     val reminderMinutesBefore: Int? = 15,
     val id: Long = 0,
+    val imagePath: String? = null,
 ) {
     companion object {
         fun from(event: EventEntity): NewEventDraft {
@@ -49,6 +51,7 @@ data class NewEventDraft(
                 recurrenceEndDate = event.recurrenceEndEpochDay?.let(LocalDate::ofEpochDay),
                 reminderMinutesBefore = event.reminderMinutesBefore,
                 id = event.id,
+                imagePath = event.imagePath,
             )
         }
     }
@@ -87,6 +90,7 @@ class EventViewModel(
                     hebrewMonth = hebrewAnchor?.hebrewMonth,
                     hebrewDay = hebrewAnchor?.hebrewDayOfMonth,
                     reminderMinutesBefore = draft.reminderMinutesBefore,
+                    imagePath = draft.imagePath,
                 ),
             )
             onSaved()
@@ -94,6 +98,9 @@ class EventViewModel(
     }
 
     fun delete(event: EventEntity) {
-        viewModelScope.launch { eventRepository.delete(event) }
+        viewModelScope.launch {
+            eventRepository.delete(event)
+            event.imagePath?.let { EventImageStore.delete(it) }
+        }
     }
 }

@@ -41,4 +41,6 @@ data class EventEntity(
     val hebrewDay: Int? = null,
     val reminderMinutesBefore: Int? = 15,
     val createdAtEpochMillis: Long = System.currentTimeMillis(),
+    /** Absolute path to a cropped photo saved in app-private storage, null if none was attached. */
+    val imagePath: String? = null,
 )

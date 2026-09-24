@@ -8,6 +8,18 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Reserved for the optional Hebcal enrichment lookup (spec 7) — not called yet. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Event photo: capturing a new photo from the camera (spec follow-up). Gallery selection
+         uses the system photo picker, which needs no storage permission. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+
+    <!-- Package-visibility (API 30+): lets the camera-capture intent resolve to the device's
+         camera app. -->
+    <queries>
+        <intent>
+            <action android:name="android.media.action.IMAGE_CAPTURE" />
+        </intent>
+    </queries>
 
     <application
         android:name=".JewishCalendarApp"
@@ -29,6 +41,18 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Exposes a private cache file as a content:// Uri for the camera app to write the
+             captured photo into (spec follow-up: event photo attachment). -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 
 </manifest>

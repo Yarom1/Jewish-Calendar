@@ -1,15 +1,27 @@
 package com.yarom.jewishcalendar.ui.screens.addevent
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -27,22 +39,30 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import com.yarom.jewishcalendar.R
 import com.yarom.jewishcalendar.data.local.entity.CalendarOwner
 import com.yarom.jewishcalendar.data.local.entity.EventEntity
 import com.yarom.jewishcalendar.data.local.entity.RecurrenceType
+import com.yarom.jewishcalendar.domain.media.EventImageStore
 import com.yarom.jewishcalendar.ui.CalendarViewModel
 import com.yarom.jewishcalendar.ui.EventViewModel
 import com.yarom.jewishcalendar.ui.NewEventDraft
@@ -50,6 +70,9 @@ import com.yarom.jewishcalendar.ui.components.DateSearchDialog
 import com.yarom.jewishcalendar.ui.theme.BrassGold
 import com.yarom.jewishcalendar.ui.theme.Burgundy
 import com.yarom.jewishcalendar.ui.theme.DeepTeal
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
@@ -109,6 +132,44 @@ fun AddEventSheet(
     }
     var isHebrewCadence by remember { mutableStateOf(initialDraft.recurrenceType.isHebrewCadence()) }
 
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    var photoPath by remember(existingEvent) { mutableStateOf(initialDraft.imagePath) }
+    var photoBitmap by remember(existingEvent) { mutableStateOf<Bitmap?>(null) }
+    LaunchedEffect(photoPath) {
+        val path = photoPath
+        photoBitmap = if (path != null) {
+            withContext(Dispatchers.IO) { android.graphics.BitmapFactory.decodeFile(path) }
+        } else {
+            null
+        }
+    }
+    var pendingCropSource by remember { mutableStateOf<Bitmap?>(null) }
+    var captureUri by remember { mutableStateOf<Uri?>(null) }
+
+    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+        val uri = captureUri
+        if (success && uri != null) {
+            coroutineScope.launch {
+                pendingCropSource = withContext(Dispatchers.IO) { EventImageStore.decodeOrientedBitmap(context, uri) }
+            }
+        }
+    }
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) {
+            val uri = EventImageStore.newCaptureUri(context)
+            captureUri = uri
+            cameraLauncher.launch(uri)
+        }
+    }
+    val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) {
+            coroutineScope.launch {
+                pendingCropSource = withContext(Dispatchers.IO) { EventImageStore.decodeOrientedBitmap(context, uri) }
+            }
+        }
+    }
+
     val switchColors = SwitchDefaults.colors(
         checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
         checkedTrackColor = DeepTeal,
@@ -158,6 +219,56 @@ fun AddEventSheet(
                 colors = fieldColors,
                 modifier = Modifier.fillMaxWidth(),
             )
+
+            SectionLabel("תמונה")
+            if (photoBitmap != null) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Image(
+                        bitmap = photoBitmap!!.asImageBitmap(),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(RoundedCornerShape(8.dp)),
+                    )
+                    TextButton(
+                        onClick = {
+                            photoPath?.let { EventImageStore.delete(it) }
+                            photoPath = null
+                        },
+                        modifier = Modifier.padding(start = 8.dp),
+                    ) {
+                        Text("הסרת תמונה", color = Burgundy)
+                    }
+                }
+            } else {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(
+                        onClick = {
+                            val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
+                                PackageManager.PERMISSION_GRANTED
+                            if (granted) {
+                                val uri = EventImageStore.newCaptureUri(context)
+                                captureUri = uri
+                                cameraLauncher.launch(uri)
+                            } else {
+                                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                            }
+                        },
+                    ) {
+                        Icon(Icons.Default.PhotoCamera, contentDescription = null, tint = DeepTeal)
+                        Text("מצלמה", color = DeepTeal, modifier = Modifier.padding(start = 4.dp))
+                    }
+                    TextButton(
+                        onClick = {
+                            galleryLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                        },
+                    ) {
+                        Icon(Icons.Default.PhotoLibrary, contentDescription = null, tint = DeepTeal)
+                        Text("גלריה", color = DeepTeal, modifier = Modifier.padding(start = 4.dp))
+                    }
+                }
+            }
 
             // The date the event (and, for a recurring rule, its cadence) anchors on - always
             // editable here, regardless of which day it was opened from (spec follow-up).
@@ -280,6 +391,7 @@ fun AddEventSheet(
                                 calendarOwner = if (isFamily) CalendarOwner.FAMILY else CalendarOwner.PERSONAL,
                                 recurrenceType = resolveRecurrenceType(isRecurring, frequency, isHebrewCadence),
                                 id = existingEvent?.id ?: 0,
+                                imagePath = photoPath,
                             ),
                             onSaved = onDismiss,
                         )
@@ -304,6 +416,20 @@ fun AddEventSheet(
             onHebrewDateChosen = { year, month, day ->
                 calendarViewModel.gregorianForHebrew(year, month, day)?.let { eventDate = it }
                 showDatePicker = false
+            },
+        )
+    }
+
+    pendingCropSource?.let { source ->
+        ImageCropDialog(
+            source = source,
+            onCancel = { pendingCropSource = null },
+            onCropped = { cropped ->
+                coroutineScope.launch {
+                    val savedPath = withContext(Dispatchers.IO) { EventImageStore.save(context, cropped, photoPath) }
+                    photoPath = savedPath
+                    pendingCropSource = null
+                }
             },
         )
     }

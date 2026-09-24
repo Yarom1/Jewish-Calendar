@@ -236,6 +236,7 @@ object CalendarPrintRenderer {
         // what its content actually needed - the exact cause of lines climbing on top of the
         // next card).
         val textRight = right - ACCENT_BAR_WIDTH * scale - 6f * scale
+        val textLeft = left + CARD_INSET * scale
         var rowTop = cardTop + CARD_INSET * scale
         val headerPaint = textPaint(HEADER_SIZE * scale, bold = true, color = TEAL)
         canvas.drawText("${day.dateLabel}   ${day.hebrewLabel}", textRight, rowTop + headerPaint.textSize, headerPaint)
@@ -245,7 +246,7 @@ object CalendarPrintRenderer {
             canvas.drawText(it, textRight, rowTop + notePaint.textSize, notePaint)
             rowTop += notePaint.textSize * 1.3f
         }
-        drawLines(canvas, day.lines, textRight, rowTop, LINE_SIZE * scale)
+        drawLines(canvas, day.lines, textRight, textLeft, rowTop, LINE_SIZE * scale)
         return cardBottom
     }
 
@@ -261,11 +262,12 @@ object CalendarPrintRenderer {
         canvas.drawRoundRect(cardRect, radius, radius, linePaint(GOLD, 1.2f * scale))
 
         val textRight = right - CARD_INSET * scale
+        val textLeft = left + CARD_INSET * scale
         var rowTop = cardTop + CARD_INSET * scale
         val headerPaint = textPaint(HEADER_SIZE * scale, bold = true, color = TEAL)
         canvas.drawText(title, textRight, rowTop + headerPaint.textSize, headerPaint)
         rowTop += headerPaint.textSize * 1.3f
-        drawLines(canvas, lines, textRight, rowTop, LINE_SIZE * scale)
+        drawLines(canvas, lines, textRight, textLeft, rowTop, LINE_SIZE * scale)
         return cardBottom
     }
 
@@ -341,15 +343,17 @@ object CalendarPrintRenderer {
         }
     }
 
-    private fun drawLines(canvas: Canvas, lines: List<PrintLine>, right: Float, startY: Float, textSize: Float): Float {
+    /** Label anchored at the row's right edge (Hebrew reading start), value/time pinned to the
+     * row's left edge - matching the classic printed-luach layout (spec follow-up: times used to
+     * sit clustered right next to their label instead of lining up down the page's left side). */
+    private fun drawLines(canvas: Canvas, lines: List<PrintLine>, right: Float, left: Float, startY: Float, textSize: Float): Float {
         var rowTop = startY
         val labelPaint = textPaint(textSize, color = INK_MUTED)
-        val valuePaint = textPaint(textSize, bold = true, color = TEAL)
+        val valuePaint = textPaint(textSize, bold = true, color = TEAL).apply { textAlign = Paint.Align.LEFT }
         for (line in lines) {
             val baseline = rowTop + textSize
-            canvas.drawText(line.value, right, baseline, valuePaint)
-            val valueWidth = valuePaint.measureText(line.value)
-            canvas.drawText(line.label, right - valueWidth - 12f, baseline, labelPaint)
+            canvas.drawText(line.label, right, baseline, labelPaint)
+            canvas.drawText(line.value, left, baseline, valuePaint)
             rowTop += textSize * 1.35f
         }
         return rowTop

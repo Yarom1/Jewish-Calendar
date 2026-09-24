@@ -32,6 +32,11 @@ object CalendarPrintRenderer {
     private const val CARD_RADIUS = 6f
     private const val ACCENT_BAR_WIDTH = 5f
 
+    /** The row-height estimate is an approximation (textSize as a stand-in for real glyph
+     * ascent/descent), so the fit-scale solve targets a bit less than the full available height -
+     * cheap insurance against small tiles (4/8-up) overflowing by a hair and clipping content. */
+    private const val HEIGHT_SAFETY_MARGIN = 0.93f
+
     // Same literals as the light color scheme in ui/theme/Theme.kt - a printed page is always
     // read against paper, so this mirrors the light ("classic parchment") variant regardless of
     // the device's own theme setting.
@@ -169,11 +174,11 @@ object CalendarPrintRenderer {
     }
 
     private fun fitScaleForWeek(rect: RectF, content: PrintWeekContent): Float {
-        val available = rect.height() - PADDING * 2
+        val available = (rect.height() - PADDING * 2) * HEIGHT_SAFETY_MARGIN
         val unitHeight = estimateWeekUnitHeight(content)
         val maxScale = scaleFor(rect)
         if (unitHeight <= 0f) return maxScale
-        return (available / unitHeight).coerceIn(0.25f, maxScale)
+        return (available / unitHeight).coerceIn(0.2f, maxScale)
     }
 
     private fun estimateDayUnitHeight(content: PrintDayContent): Float {
@@ -185,11 +190,11 @@ object CalendarPrintRenderer {
     }
 
     private fun fitScaleForDay(rect: RectF, content: PrintDayContent): Float {
-        val available = rect.height() - PADDING * 2
+        val available = (rect.height() - PADDING * 2) * HEIGHT_SAFETY_MARGIN
         val unitHeight = estimateDayUnitHeight(content)
         val maxScale = scaleFor(rect)
         if (unitHeight <= 0f) return maxScale
-        return (available / unitHeight).coerceIn(0.25f, maxScale)
+        return (available / unitHeight).coerceIn(0.2f, maxScale)
     }
 
     /** Card height at scale=1 (mirrors [drawDayCard]'s own layout math exactly). */

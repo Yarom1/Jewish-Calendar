@@ -62,7 +62,16 @@ class CalendarPrintDocumentAdapter(
         val pageInfo = page.info
         val fullRect = RectF(0f, 0f, pageInfo.pageWidth.toFloat(), pageInfo.pageHeight.toFloat())
         for (rect in tileRects(fullRect, copiesPerPage)) {
+            // Clip each tile to its own rect - a safety net so that if a tile's content ever runs
+            // longer than its auto-fit scale estimated (small tiles like 4/8-up leave very little
+            // margin for error), the overflow is cropped cleanly instead of bleeding into the next
+            // tile's area and getting painted over by its background (spec follow-up: that's what
+            // "the design broke" turned out to be - tile 1's overflow getting stomped by tile 2's
+            // own fill, not a drawing corruption).
+            page.canvas.save()
+            page.canvas.clipRect(rect)
             CalendarPrintRenderer.render(page.canvas, rect, content)
+            page.canvas.restore()
         }
         document.finishPage(page)
 

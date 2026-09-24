@@ -413,6 +413,10 @@ private fun WeekDayRow(
             for (type in ZmanType.entries) {
                 if (type !in visibleZmanim) continue
                 if (type == ZmanType.TZEIS_HAKOCHAVIM && hebrewDate.isMotzaeiShabbosOrYomTov) continue
+                // Candle lighting is always shown via the dedicated erev block above instead (with
+                // its own styling) - showing it again here had no erev guard at all, so it printed
+                // a (meaningless) candle-lighting time on every single day, not just erev days.
+                if (type == ZmanType.CANDLE_LIGHTING) continue
                 ZmanLine(
                     label = type.compactLabel(),
                     time = zmanTimes[type].formatTime(),

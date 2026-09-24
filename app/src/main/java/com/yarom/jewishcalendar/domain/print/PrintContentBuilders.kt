@@ -47,7 +47,10 @@ private fun dayLines(
     for (type in ZmanType.entries) {
         if (type !in settings.visibleZmanim) continue
         if (type == ZmanType.TZEIS_HAKOCHAVIM && hebrewDate.isMotzaeiShabbosOrYomTov) continue
-        if (type == ZmanType.CANDLE_LIGHTING && hebrewDate.isErevShabbosOrYomTov) continue
+        // Candle lighting is always added via the erev block above instead - the previous guard
+        // here only stopped the erev-day duplicate, but left it printing on every *other* day too
+        // (mirrors the same bug just fixed in WeeklyScreen's own zman loop).
+        if (type == ZmanType.CANDLE_LIGHTING) continue
         lines.add(PrintLine(type.compactLabelPlain(context), zmanTimes[type].formatTime()))
     }
     for (title in eventTitles) {

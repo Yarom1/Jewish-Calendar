@@ -37,6 +37,11 @@ object CalendarPrintRenderer {
      * cheap insurance against small tiles (4/8-up) overflowing by a hair and clipping content. */
     private const val HEIGHT_SAFETY_MARGIN = 0.93f
 
+    /** A purely defensive floor against a zero/negative scale on a pathological content size, not
+     * a legibility minimum - fitScale is meant to shrink as far as a tile needs so every section
+     * still fits (see fitScaleForWeek/Day). */
+    private const val MIN_SANE_SCALE = 0.05f
+
     // Same literals as the light color scheme in ui/theme/Theme.kt - a printed page is always
     // read against paper, so this mirrors the light ("classic parchment") variant regardless of
     // the device's own theme setting.
@@ -178,7 +183,11 @@ object CalendarPrintRenderer {
         val unitHeight = estimateWeekUnitHeight(content)
         val maxScale = scaleFor(rect)
         if (unitHeight <= 0f) return maxScale
-        return (available / unitHeight).coerceIn(0.2f, maxScale)
+        // No lower floor: every section (day cards, week zmanim, daily study, summary band) must
+        // stay on the page even when tiling several copies per sheet (4/8-up) - it just shrinks as
+        // far as the tile needs, rather than clipping content once it hits a floor (spec
+        // follow-up: a 0.2x floor was still cropping whole days/sections out of small tiles).
+        return (available / unitHeight).coerceIn(MIN_SANE_SCALE, maxScale)
     }
 
     private fun estimateDayUnitHeight(content: PrintDayContent): Float {
@@ -194,7 +203,7 @@ object CalendarPrintRenderer {
         val unitHeight = estimateDayUnitHeight(content)
         val maxScale = scaleFor(rect)
         if (unitHeight <= 0f) return maxScale
-        return (available / unitHeight).coerceIn(0.2f, maxScale)
+        return (available / unitHeight).coerceIn(MIN_SANE_SCALE, maxScale)
     }
 
     /** Card height at scale=1 (mirrors [drawDayCard]'s own layout math exactly). */

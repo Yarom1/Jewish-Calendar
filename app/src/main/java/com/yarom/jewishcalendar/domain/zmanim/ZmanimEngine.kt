@@ -45,7 +45,7 @@ class ZmanimEngine {
                 clear()
                 set(date.year, date.monthValue - 1, date.dayOfMonth)
             }
-            candleLightingOffset = 18.0
+            candleLightingOffset = if (method == CalculationMethod.JERUSALEM_SEA_LEVEL) 40.0 else 18.0
         }
 
         val zoneId = ZoneId.of(coordinates.timeZoneId)
@@ -56,7 +56,9 @@ class ZmanimEngine {
         // replaced the value shown on the row explicitly labeled "(גר"א)").  Only the zmanim
         // without a separate per-method row (alos, sof zman tefila, tzeis) follow the setting.
         val (sofZmanTefila, alos, tzeis) = when (method) {
-            CalculationMethod.GRA -> Triple(
+            // Jerusalem/Bnei Brak use the same GRA-based times here (they only differ from plain
+            // GRA in candle-lighting offset, set above).
+            CalculationMethod.GRA, CalculationMethod.JERUSALEM_SEA_LEVEL, CalculationMethod.BEIT_BENEI_BRAK -> Triple(
                 calendar.sofZmanTfilaGRA.toZoned(),
                 calendar.alosHashachar.toZoned(),
                 calendar.tzais.toZoned(),
@@ -65,6 +67,11 @@ class ZmanimEngine {
                 calendar.sofZmanTfilaMGA.toZoned(),
                 calendar.alos72.toZoned(),
                 calendar.tzais72.toZoned(),
+            )
+            CalculationMethod.RABBI_OVADIA_YOSEF -> Triple(
+                calendar.sofZmanTfilaMGA16Point1Degrees.toZoned(),
+                calendar.alosHashachar.toZoned(),
+                calendar.tzaisGeonim7Point083Degrees.toZoned(),
             )
         }
 

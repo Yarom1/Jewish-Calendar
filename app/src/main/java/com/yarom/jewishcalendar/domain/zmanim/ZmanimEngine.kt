@@ -68,7 +68,10 @@ class ZmanimEngine {
                 calendar.alos72.toZoned(),
                 calendar.tzais72.toZoned(),
             )
-            CalculationMethod.RABBI_OVADIA_YOSEF -> Triple(
+            // Luach Or HaChaim publishes zmanim per Rabbi Ovadia Yosef's own rulings (72-minute-
+            // equivalent alos, 13.5-minute/7.083° tzeis - his commonly-cited psak) - same mapping
+            // as the Rabbi Ovadia Yosef method above, offered under its own recognizable name.
+            CalculationMethod.RABBI_OVADIA_YOSEF, CalculationMethod.OHR_HACHAIM -> Triple(
                 calendar.sofZmanTfilaMGA16Point1Degrees.toZoned(),
                 calendar.alosHashachar.toZoned(),
                 calendar.tzaisGeonim7Point083Degrees.toZoned(),

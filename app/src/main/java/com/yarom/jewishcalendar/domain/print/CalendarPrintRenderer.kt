@@ -367,13 +367,19 @@ object CalendarPrintRenderer {
      * calendar does). */
     private fun drawLines(canvas: Canvas, lines: List<PrintLine>, left: Float, startY: Float, textSize: Float): Float {
         var rowTop = startY
-        val labelPaint = textPaint(textSize, color = INK_MUTED).apply { textAlign = Paint.Align.LEFT }
-        val valuePaint = textPaint(textSize, bold = true, color = TEAL).apply { textAlign = Paint.Align.LEFT }
+        // Both pieces are drawn RIGHT-aligned (each at its own right edge, computed explicitly)
+        // rather than left-aligned, even though the cluster as a whole sits at the row's left -
+        // Skia/Minikin's LEFT-aligned drawText path doesn't reliably shape RTL Hebrew glyphs (they
+        // rendered crowded/overlapping), while RIGHT alignment - used everywhere else in this
+        // renderer - is the well-exercised path for RTL text and always rendered correctly.
+        val labelPaint = textPaint(textSize, color = INK_MUTED)
+        val valuePaint = textPaint(textSize, bold = true, color = TEAL)
         for (line in lines) {
             val baseline = rowTop + textSize
-            canvas.drawText(line.value, left, baseline, valuePaint)
             val valueWidth = valuePaint.measureText(line.value)
-            canvas.drawText(line.label, left + valueWidth + textSize * 0.5f, baseline, labelPaint)
+            canvas.drawText(line.value, left + valueWidth, baseline, valuePaint)
+            val labelWidth = labelPaint.measureText(line.label)
+            canvas.drawText(line.label, left + valueWidth + textSize * 0.5f + labelWidth, baseline, labelPaint)
             rowTop += textSize * 1.5f
         }
         return rowTop

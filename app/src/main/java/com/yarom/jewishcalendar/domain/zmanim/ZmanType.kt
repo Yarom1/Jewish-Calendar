@@ -35,6 +35,5 @@ enum class CalculationMethod(val displayName: String) {
     MAGEN_AVRAHAM("מגן אברהם"),
     JERUSALEM_SEA_LEVEL("זמני ירושלים"),
     BEIT_BENEI_BRAK("בני ברק"),
-    RABBI_OVADIA_YOSEF("הרב עובדיה יוסף (16.1°)"),
-    OHR_HACHAIM("לוח אור החיים"),
+    RABBI_OVADIA_YOSEF("הרב עובדיה יוסף (לוח אור החיים)"),
 }
